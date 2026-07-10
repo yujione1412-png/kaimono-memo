@@ -194,34 +194,55 @@ input,textarea{font-family:inherit;font-size:16px}
 .empty-note{font-size:13px;color:var(--sub);line-height:1.7;padding:8px 4px}
 
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* --- v7 追加: ヘッダーバー / 計算機ボタン --- */
+.headerbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.calcbtn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;
+  border:2px solid var(--green);background:#EAF4EE;color:var(--green-dk);font-weight:800;font-size:13px}
+.calcbtn__icon{font-size:16px;line-height:1}
+.calcbtn:active{transform:scale(.96)}
+
+/* --- v7 追加: 単価表示 --- */
+.pricecol{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.unitprice{font-size:11px;font-weight:700;color:#9A7A18;white-space:nowrap}
+.unitprice--detail{color:var(--green-dk);background:#EAF4EE;border-radius:8px;
+  padding:6px 10px;font-size:12px;text-align:center}
+.memolist__unit{color:#9A7A18;font-weight:700}
+
+/* --- v7 追加: 単位セレクト --- */
+.field--unit{max-width:110px;flex:0 0 auto}
+.field select{padding:10px 12px;border:2px solid var(--line);border-radius:10px;
+  background:var(--card);width:100%;font-family:inherit;font-size:16px;color:var(--ink)}
+.field select:focus{outline:none;border-color:var(--green)}
+
+/* --- v7 追加: 計算機画面 --- */
+.sheet__title{font-weight:800;font-size:16px}
+.calcintro{font-size:13px;color:var(--sub);line-height:1.7}
+.calccard{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px;
+  display:flex;flex-direction:column;gap:12px}
+.calccard.is-win{border-color:var(--green);background:#F1F8F4}
+.calccard__head{display:flex;align-items:center;gap:8px}
+.calccard__label{font-weight:800;font-size:14px}
+.badge--win{background:var(--green);color:#fff}
+.calcrow{display:flex;gap:10px}
+.calcresult{font-size:14px;color:var(--sub);border-top:1px dashed var(--line);padding-top:10px}
+.calcresult strong{color:var(--price);font-size:22px;margin-left:4px}
+.calcresult__label{font-size:12px}
+.calcresult__empty{font-size:12px}
+.calcverdict{background:#EAF4EE;border-radius:12px;padding:14px;text-align:center;
+  font-weight:800;color:var(--green-dk);font-size:15px}
+
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
-// Netlify(通常のWebサイト)用: 端末のブラウザ内に保存するlocalStorage版ストレージ
+// Netlify/Vercel(通常のWebサイト)用: 端末のブラウザ内に保存
 window.storage = {
-  async get(key) {
-    const v = localStorage.getItem(key);
-    if (v === null) throw new Error("key not found: " + key);
-    return { key, value: v };
-  },
-  async set(key, value) {
-    localStorage.setItem(key, value);
-    return { key, value };
-  },
-  async delete(key) {
-    localStorage.removeItem(key);
-    return { key, deleted: true };
-  },
-  async list(prefix = "") {
-    const keys = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(prefix)) keys.push(k);
-    }
-    return { keys, prefix };
-  },
+  async get(key){ const v = localStorage.getItem(key); if(v===null) throw new Error("key not found: "+key); return {key, value:v}; },
+  async set(key, value){ localStorage.setItem(key, value); return {key, value}; },
+  async delete(key){ localStorage.removeItem(key); return {key, deleted:true}; },
+  async list(prefix=""){ const keys=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith(prefix)) keys.push(k);} return {keys, prefix}; },
 };
 </script>
 <script>
@@ -236,8 +257,13 @@ window.addEventListener("error", function(e){
 const {
   useState,
   useEffect,
-  useMemo
+  useMemo,
+  useRef,
+  Fragment
 } = React;
+
+// ---------- 定数 ----------
+const UNITS = ["g", "kg", "ml", "L", "個", "枚", "ロール", "回分"];
 
 // ---------- ユーティリティ ----------
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -248,8 +274,19 @@ const fmtDate = d => {
   const [y, m, day] = d.split("-");
   return `${y}/${Number(m)}/${Number(day)}`;
 };
-
-// 写真を縮小してdataURL化(保存容量対策)
+// 単価(1単位あたり)を見やすく整形
+const fmtUnitPrice = v => {
+  if (v == null || isNaN(v)) return null;
+  if (v >= 100) return Math.round(v).toLocaleString();
+  return (Math.round(v * 100) / 100).toString();
+};
+// アイテムの単価を計算(メイン記録の税込価格 ÷ 容量)
+const unitPriceOf = item => {
+  const main = mainRecord(item);
+  const vol = Number(item.volume);
+  if (!main || item.volume === "" || isNaN(vol) || vol <= 0) return null;
+  return Number(main.priceIncl) / vol;
+};
 const compressImage = file => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = () => {
@@ -269,21 +306,23 @@ const compressImage = file => new Promise((resolve, reject) => {
   reader.onerror = reject;
   reader.readAsDataURL(file);
 });
-
-// メイン記録(★指定がなければ最新の記録)
 const mainRecord = item => {
   if (!item.records || item.records.length === 0) return null;
   return item.records.find(r => r.isMain) || [...item.records].sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
 };
 
-// ---------- 値札タグ ----------
+// ---------- 値札タグ + 単価 ----------
 function PriceTag({
   record,
-  small
+  unitPrice,
+  unit
 }) {
+  const up = fmtUnitPrice(unitPrice);
   return /*#__PURE__*/React.createElement("div", {
-    className: "pricetag" + (small ? " pricetag--sm" : "")
-  }, record ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "pricecol"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pricetag"
+  }, record ? /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "pricetag__main"
   }, /*#__PURE__*/React.createElement("span", {
     className: "pricetag__yen"
@@ -293,7 +332,9 @@ function PriceTag({
     className: "pricetag__sub"
   }, "税抜 ", yen(record.priceExcl))) : /*#__PURE__*/React.createElement("div", {
     className: "pricetag__empty"
-  }, "記録なし"));
+  }, "記録なし")), up != null && /*#__PURE__*/React.createElement("div", {
+    className: "unitprice"
+  }, "¥", up, " / ", unit));
 }
 
 // ---------- 記録追加/編集フォーム ----------
@@ -465,7 +506,131 @@ function TagEditor({
   }, "#", t))));
 }
 
-// ---------- アイテム詳細(新規/編集) ----------
+// ---------- 単価計算機 ----------
+function Calculator({
+  onBack
+}) {
+  const empty = {
+    vol: "",
+    unit: "g",
+    price: ""
+  };
+  const [a, setA] = useState({
+    ...empty
+  });
+  const [b, setB] = useState({
+    ...empty
+  });
+  const [useB, setUseB] = useState(false);
+  const calc = x => {
+    const v = Number(x.vol),
+      p = Number(x.price);
+    if (x.vol === "" || x.price === "" || isNaN(v) || isNaN(p) || v <= 0) return null;
+    return p / v;
+  };
+  const ua = calc(a),
+    ub = calc(b);
+  const cheaper = useB && ua != null && ub != null ? ua <= ub ? "a" : "b" : null;
+  const diffPct = useB && ua != null && ub != null && Math.max(ua, ub) > 0 ? Math.round(Math.abs(ua - ub) / Math.max(ua, ub) * 100) : null;
+  const Row = ({
+    x,
+    setX,
+    label,
+    win
+  }) => /*#__PURE__*/React.createElement("div", {
+    className: "calccard" + (win ? " is-win" : "")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "calccard__head"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "calccard__label"
+  }, label), win && /*#__PURE__*/React.createElement("span", {
+    className: "badge badge--win"
+  }, "お得")), /*#__PURE__*/React.createElement("div", {
+    className: "calcrow"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "容量"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    inputMode: "decimal",
+    placeholder: "0",
+    value: x.vol,
+    onChange: e => setX({
+      ...x,
+      vol: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "field field--unit"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "単位"), /*#__PURE__*/React.createElement("select", {
+    value: x.unit,
+    onChange: e => setX({
+      ...x,
+      unit: e.target.value
+    })
+  }, UNITS.map(u => /*#__PURE__*/React.createElement("option", {
+    key: u,
+    value: u
+  }, u)))), /*#__PURE__*/React.createElement("label", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "金額(円)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    inputMode: "numeric",
+    placeholder: "0",
+    value: x.price,
+    onChange: e => setX({
+      ...x,
+      price: e.target.value
+    })
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "calcresult"
+  }, calc(x) != null ? /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("span", {
+    className: "calcresult__label"
+  }, "1", x.unit, "あたり"), " ", /*#__PURE__*/React.createElement("strong", null, "¥", fmtUnitPrice(calc(x)))) : /*#__PURE__*/React.createElement("span", {
+    className: "calcresult__empty"
+  }, "容量と金額を入力してください")));
+  return /*#__PURE__*/React.createElement("div", {
+    className: "sheet",
+    role: "dialog",
+    "aria-label": "単価計算機"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sheet__bar"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--ghost",
+    onClick: onBack
+  }, "← 戻る"), /*#__PURE__*/React.createElement("span", {
+    className: "sheet__title"
+  }, "単価計算機"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 64
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "sheet__body"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "calcintro"
+  }, "容量と金額を入れると、1単位あたりの金額が出ます。2つ入れるとどちらがお得か比べられます。"), /*#__PURE__*/React.createElement(Row, {
+    x: a,
+    setX: setA,
+    label: "商品A",
+    win: cheaper === "a"
+  }), useB ? /*#__PURE__*/React.createElement(Row, {
+    x: b,
+    setX: setB,
+    label: "商品B",
+    win: cheaper === "b"
+  }) : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--small btn--wide",
+    onClick: () => setUseB(true)
+  }, "＋ もう1つと比べる"), cheaper && diffPct != null && /*#__PURE__*/React.createElement("div", {
+    className: "calcverdict"
+  }, cheaper === "a" ? "商品A" : "商品B", "が", diffPct > 0 ? ` 約${diffPct}% お得` : " 同じくらい", "です。")));
+}
+
+// ---------- アイテム詳細 ----------
 function ItemDetail({
   item,
   allStores,
@@ -478,6 +643,8 @@ function ItemDetail({
     const d = JSON.parse(JSON.stringify(item));
     d.tags = d.tags || [];
     d.memo = d.memo || "";
+    d.volume = d.volume ?? "";
+    d.unit = d.unit || "g";
     return d;
   });
   const [showForm, setShowForm] = useState(item.records.length === 0);
@@ -524,9 +691,7 @@ function ItemDetail({
     records: d.records.filter(r => r.id !== id)
   }));
   const toggleSort = key => {
-    if (sortKey === key) {
-      setSortDir(d => d === "asc" ? "desc" : "asc");
-    } else {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");else {
       setSortKey(key);
       setSortDir(key === "store" ? "asc" : "desc");
     }
@@ -543,6 +708,7 @@ function ItemDetail({
     price: "金額",
     store: "店舗"
   };
+  const detailUnitPrice = fmtUnitPrice(unitPriceOf(draft));
   return /*#__PURE__*/React.createElement("div", {
     className: "sheet",
     role: "dialog",
@@ -588,6 +754,36 @@ function ItemDetail({
       name: e.target.value
     }))
   })), /*#__PURE__*/React.createElement("div", {
+    className: "recform__row"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "容量"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    inputMode: "decimal",
+    placeholder: "例: 500",
+    value: draft.volume,
+    onChange: e => setDraft(d => ({
+      ...d,
+      volume: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "field field--unit"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "単位"), /*#__PURE__*/React.createElement("select", {
+    value: draft.unit,
+    onChange: e => setDraft(d => ({
+      ...d,
+      unit: e.target.value
+    }))
+  }, UNITS.map(u => /*#__PURE__*/React.createElement("option", {
+    key: u,
+    value: u
+  }, u))))), detailUnitPrice != null && /*#__PURE__*/React.createElement("div", {
+    className: "unitprice unitprice--detail"
+  }, "メインの記録で 1", draft.unit, "あたり ¥", detailUnitPrice), /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", {
     className: "field__label"
@@ -687,8 +883,43 @@ function App() {
   const [saveError, setSaveError] = useState(false);
   const [tab, setTab] = useState("items");
   const [detail, setDetail] = useState(null);
+  const [showCalc, setShowCalc] = useState(false);
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState([]);
+
+  // 画面端スワイプ/戻るで前の画面へ戻る
+  const navRef = useRef({
+    detail: false,
+    calc: false
+  });
+  useEffect(() => {
+    const onPop = () => {
+      if (navRef.current.detail) {
+        navRef.current.detail = false;
+        setDetail(null);
+      } else if (navRef.current.calc) {
+        navRef.current.calc = false;
+        setShowCalc(false);
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const goBack = () => window.history.back();
+  const openDetail = item => {
+    navRef.current.detail = true;
+    setDetail(item);
+    window.history.pushState({
+      s: "detail"
+    }, "");
+  };
+  const openCalc = () => {
+    navRef.current.calc = true;
+    setShowCalc(true);
+    window.history.pushState({
+      s: "calc"
+    }, "");
+  };
   useEffect(() => {
     (async () => {
       try {
@@ -702,6 +933,8 @@ function App() {
               const it = JSON.parse(v.value);
               it.tags = it.tags || [];
               it.memo = it.memo || "";
+              it.volume = it.volume ?? "";
+              it.unit = it.unit || "g";
               loaded.push({
                 ...it,
                 _saved: true
@@ -738,15 +971,15 @@ function App() {
       const next = exists ? list.map(i => i.id === item.id ? item : i) : [...list, item];
       return next.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ja"));
     });
-    setDetail(null);
     await persist(item);
+    goBack();
   };
   const deleteItem = async id => {
     setItems(list => list.filter(i => i.id !== id));
-    setDetail(null);
     try {
       await window.storage.delete("item:" + id);
     } catch {}
+    goBack();
   };
   const toggleField = async (id, field) => {
     setItems(list => list.map(i => i.id === id ? {
@@ -766,13 +999,15 @@ function App() {
       await persist(next);
     }
   };
-  const newItem = () => setDetail({
+  const newItem = () => openDetail({
     id: uid(),
     name: "",
     photo: null,
     records: [],
     tags: [],
     memo: "",
+    volume: "",
+    unit: "g",
     onList: false,
     checked: false
   });
@@ -804,11 +1039,22 @@ function App() {
     className: "app"
   }, /*#__PURE__*/React.createElement("header", {
     className: "header"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "headerbar"
   }, /*#__PURE__*/React.createElement("h1", {
     className: "header__title"
   }, "いつもの", /*#__PURE__*/React.createElement("span", null, "買い物メモ"), /*#__PURE__*/React.createElement("small", {
     className: "header__ver"
-  }, "v6")), /*#__PURE__*/React.createElement("nav", {
+  }, "v7")), /*#__PURE__*/React.createElement("button", {
+    className: "calcbtn",
+    onClick: openCalc,
+    "aria-label": "単価計算機をひらく",
+    title: "単価計算機"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "calcbtn__icon"
+  }, "🧮"), /*#__PURE__*/React.createElement("span", {
+    className: "calcbtn__txt"
+  }, "単価計算"))), /*#__PURE__*/React.createElement("nav", {
     className: "tabs",
     role: "tablist"
   }, /*#__PURE__*/React.createElement("button", {
@@ -849,7 +1095,7 @@ function App() {
     className: "welcome"
   }, /*#__PURE__*/React.createElement("div", {
     className: "welcome__tag"
-  }, "¥ __ ", /*#__PURE__*/React.createElement("small", null, "税込")), /*#__PURE__*/React.createElement("h2", null, "いつも買う日用品を、値札ごと覚えておくノートです。"), /*#__PURE__*/React.createElement("p", null, "パッケージの写真・記録日・税込/税抜価格・店舗を記録して、次の買い物のメモに使えます。"), /*#__PURE__*/React.createElement("button", {
+  }, "¥ __ ", /*#__PURE__*/React.createElement("small", null, "税込")), /*#__PURE__*/React.createElement("h2", null, "いつも買う日用品を、値札ごと覚えておくノートです。"), /*#__PURE__*/React.createElement("p", null, "パッケージの写真・記録日・税込/税抜価格・店舗・容量を記録して、次の買い物のメモに使えます。"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn--primary btn--wide",
     onClick: newItem
   }, "最初のアイテムを登録")) : /*#__PURE__*/React.createElement("ul", {
@@ -861,7 +1107,7 @@ function App() {
       className: "card"
     }, /*#__PURE__*/React.createElement("button", {
       className: "card__body",
-      onClick: () => setDetail(item)
+      onClick: () => openDetail(item)
     }, /*#__PURE__*/React.createElement("div", {
       className: "thumb"
     }, item.photo ? /*#__PURE__*/React.createElement("img", {
@@ -886,7 +1132,8 @@ function App() {
       className: "minitag"
     }, "#", t)))), /*#__PURE__*/React.createElement(PriceTag, {
       record: main,
-      small: true
+      unitPrice: unitPriceOf(item),
+      unit: item.unit
     })), /*#__PURE__*/React.createElement("button", {
       className: "card__memo" + (item.onList ? " is-on" : ""),
       onClick: () => toggleField(item.id, "onList"),
@@ -905,12 +1152,13 @@ function App() {
   }, /*#__PURE__*/React.createElement("h2", null, "買い物メモは空です。"), /*#__PURE__*/React.createElement("p", null, "アイテム帳で「メモに入れる」を押すと、ここに買う物リストとして並びます。"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn--ghost",
     onClick: () => setTab("items")
-  }, "アイテム帳を開く")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, "アイテム帳を開く")) : /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "total"
   }, /*#__PURE__*/React.createElement("span", null, "残り ", remaining.length, " 点"), /*#__PURE__*/React.createElement("strong", null, "合計めやす ", yen(estTotal), " ", /*#__PURE__*/React.createElement("small", null, "税込"))), /*#__PURE__*/React.createElement("ul", {
     className: "memolist"
   }, [...memoItems].sort((a, b) => Number(a.checked) - Number(b.checked)).map(item => {
     const main = mainRecord(item);
+    const up = fmtUnitPrice(unitPriceOf(item));
     return /*#__PURE__*/React.createElement("li", {
       key: item.id,
       className: "memolist__item" + (item.checked ? " is-done" : "")
@@ -929,7 +1177,9 @@ function App() {
       className: "memolist__name"
     }, item.name), /*#__PURE__*/React.createElement("div", {
       className: "memolist__meta"
-    }, main ? (main.store || "店舗未記入") + " ・ " + yen(main.priceIncl) + " 税込(税抜 " + yen(main.priceExcl) + ")" : "価格の記録なし")), /*#__PURE__*/React.createElement("button", {
+    }, main ? (main.store || "店舗未記入") + " ・ " + yen(main.priceIncl) + " 税込" : "価格の記録なし", up != null && /*#__PURE__*/React.createElement("span", {
+      className: "memolist__unit"
+    }, " ・ ¥", up, "/", item.unit))), /*#__PURE__*/React.createElement("button", {
       className: "linkbtn",
       onClick: () => toggleField(item.id, "onList")
     }, "外す"));
@@ -939,7 +1189,9 @@ function App() {
     allTags: allTags,
     onSave: saveItem,
     onDelete: deleteItem,
-    onClose: () => setDetail(null)
+    onClose: goBack
+  }), showCalc && /*#__PURE__*/React.createElement(Calculator, {
+    onBack: goBack
   }));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
