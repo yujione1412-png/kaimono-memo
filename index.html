@@ -232,12 +232,34 @@ input,textarea{font-family:inherit;font-size:16px}
 .calcverdict{background:#EAF4EE;border-radius:12px;padding:14px;text-align:center;
   font-weight:800;color:var(--green-dk);font-size:15px}
 
+/* --- v8 追加: 電卓風キーパッド --- */
+.calcinput{width:100%;text-align:right;padding:10px 12px;border:2px solid var(--line);
+  border-radius:10px;background:var(--card);font-size:18px;font-weight:800;
+  min-height:44px;color:var(--ink);cursor:pointer}
+.calcinput.is-active{border-color:var(--green);box-shadow:0 0 0 3px rgba(31,122,85,.15)}
+.calcinput__ph{color:#B9B6A8;font-weight:500}
+.keypad-spacer{height:300px}
+.keypad-wrap{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:center}
+.keypad{width:100%;max-width:520px;background:#EDEBE3;border-top:1px solid var(--line);
+  padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  display:flex;gap:8px;box-shadow:0 -6px 20px rgba(0,0,0,.12)}
+.keypad__grid{flex:3;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.keypad__side{flex:1;display:flex;flex-direction:column;gap:8px}
+.keypad__btn{border:none;border-radius:12px;background:#fff;font-size:20px;font-weight:800;
+  color:var(--ink);padding:16px 0;min-height:52px}
+.keypad__btn:active{transform:scale(.97)}
+.keypad__btn.op{background:#FBEAD1;color:#B26A00}
+.keypad__btn.fn{background:#E2DFD3;color:#6B6858;font-size:17px}
+.keypad__btn.eq{background:var(--green);color:#fff;flex:1}
+.keypad__btn.done{background:#fff;color:var(--green);border:2px solid var(--green);flex:1;font-size:15px}
+.keypad__side .keypad__btn{flex:1}
+
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
-// Netlify/Vercel(通常のWebサイト)用: 端末のブラウザ内に保存
+// Vercel/Netlify(通常のWebサイト)用: 端末のブラウザ内に保存
 window.storage = {
   async get(key){ const v = localStorage.getItem(key); if(v===null) throw new Error("key not found: "+key); return {key, value:v}; },
   async set(key, value){ localStorage.setItem(key, value); return {key, value}; },
@@ -309,6 +331,44 @@ const compressImage = file => new Promise((resolve, reject) => {
 const mainRecord = item => {
   if (!item.records || item.records.length === 0) return null;
   return item.records.find(r => r.isMain) || [...item.records].sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
+};
+
+// 四則演算の式(例: "128*3")を安全に評価する
+const evalExpr = s => {
+  if (!s) return null;
+  const str = String(s).replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
+  const toks = [];
+  let num = "";
+  for (const ch of str) {
+    if ("0123456789.".includes(ch)) num += ch;else if ("+-*/".includes(ch)) {
+      if (num !== "") {
+        toks.push(parseFloat(num));
+        num = "";
+      }
+      toks.push(ch);
+    }
+  }
+  if (num !== "") toks.push(parseFloat(num));
+  while (toks.length && typeof toks[toks.length - 1] === "string") toks.pop();
+  if (!toks.length) return null;
+  if (typeof toks[0] === "string") toks.unshift(0);
+  // ×÷ を先に処理
+  const p = [toks[0]];
+  for (let i = 1; i < toks.length; i += 2) {
+    const op = toks[i],
+      val = toks[i + 1];
+    if (val == null) break;
+    if (op === "*") p[p.length - 1] = p[p.length - 1] * val;else if (op === "/") p[p.length - 1] = p[p.length - 1] / val;else {
+      p.push(op, val);
+    }
+  }
+  // +− を処理
+  let r = p[0];
+  for (let i = 1; i < p.length; i += 2) {
+    if (p[i] === "+") r += p[i + 1];else if (p[i] === "-") r -= p[i + 1];
+  }
+  if (!isFinite(r)) return null;
+  return parseFloat(r.toFixed(4));
 };
 
 // ---------- 値札タグ + 単価 ----------
@@ -507,92 +567,112 @@ function TagEditor({
 }
 
 // ---------- 単価計算機 ----------
+const KEYS = ["7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "−", "0", ".", "⌫", "+"];
 function Calculator({
   onBack
 }) {
-  const empty = {
+  const [a, setA] = useState({
     vol: "",
     unit: "g",
     price: ""
-  };
-  const [a, setA] = useState({
-    ...empty
   });
   const [b, setB] = useState({
-    ...empty
+    vol: "",
+    unit: "g",
+    price: ""
   });
   const [useB, setUseB] = useState(false);
-  const calc = x => {
-    const v = Number(x.vol),
-      p = Number(x.price);
-    if (x.vol === "" || x.price === "" || isNaN(v) || isNaN(p) || v <= 0) return null;
+  const [active, setActive] = useState(null); // { who:'a'|'b', field:'vol'|'price' }
+
+  const getVal = () => active ? (active.who === "a" ? a : b)[active.field] : "";
+  const setVal = updater => {
+    if (!active) return;
+    const setter = active.who === "a" ? setA : setB;
+    setter(prev => ({
+      ...prev,
+      [active.field]: typeof updater === "function" ? updater(prev[active.field]) : updater
+    }));
+  };
+  const press = k => {
+    if (k === "C") return setVal("");
+    if (k === "⌫") return setVal(c => c.slice(0, -1));
+    if (k === "=") return setVal(c => {
+      const r = evalExpr(c);
+      return r == null ? c : String(r);
+    });
+    setVal(c => {
+      if ("+-×÷".includes(k) && /[+\-×÷]$/.test(c)) return c.slice(0, -1) + k; // 演算子の連続を防ぐ
+      if (k === "." && /\.\d*$/.test(c)) return c; // 小数点の重複を防ぐ
+      return c + k;
+    });
+  };
+  const unitOf = x => {
+    const v = evalExpr(x.vol),
+      p = evalExpr(x.price);
+    if (v == null || p == null || v <= 0) return null;
     return p / v;
   };
-  const ua = calc(a),
-    ub = calc(b);
+  const ua = unitOf(a),
+    ub = unitOf(b);
   const cheaper = useB && ua != null && ub != null ? ua <= ub ? "a" : "b" : null;
   const diffPct = useB && ua != null && ub != null && Math.max(ua, ub) > 0 ? Math.round(Math.abs(ua - ub) / Math.max(ua, ub) * 100) : null;
-  const Row = ({
-    x,
-    setX,
-    label,
-    win
-  }) => /*#__PURE__*/React.createElement("div", {
-    className: "calccard" + (win ? " is-win" : "")
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "calccard__head"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "calccard__label"
-  }, label), win && /*#__PURE__*/React.createElement("span", {
-    className: "badge badge--win"
-  }, "お得")), /*#__PURE__*/React.createElement("div", {
-    className: "calcrow"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "field"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "field__label"
-  }, "容量"), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    inputMode: "decimal",
-    placeholder: "0",
-    value: x.vol,
-    onChange: e => setX({
-      ...x,
-      vol: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("label", {
-    className: "field field--unit"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "field__label"
-  }, "単位"), /*#__PURE__*/React.createElement("select", {
-    value: x.unit,
-    onChange: e => setX({
-      ...x,
-      unit: e.target.value
-    })
-  }, UNITS.map(u => /*#__PURE__*/React.createElement("option", {
-    key: u,
-    value: u
-  }, u)))), /*#__PURE__*/React.createElement("label", {
-    className: "field"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "field__label"
-  }, "金額(円)"), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    inputMode: "numeric",
-    placeholder: "0",
-    value: x.price,
-    onChange: e => setX({
-      ...x,
-      price: e.target.value
-    })
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "calcresult"
-  }, calc(x) != null ? /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("span", {
-    className: "calcresult__label"
-  }, "1", x.unit, "あたり"), " ", /*#__PURE__*/React.createElement("strong", null, "¥", fmtUnitPrice(calc(x)))) : /*#__PURE__*/React.createElement("span", {
-    className: "calcresult__empty"
-  }, "容量と金額を入力してください")));
+
+  // 入力欄(タップで電卓キーパッドを開く)
+  const inputBtn = (who, x, field, ph) => {
+    const val = x[field];
+    const on = active && active.who === who && active.field === field;
+    return /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      className: "calcinput" + (on ? " is-active" : ""),
+      onClick: () => setActive({
+        who,
+        field
+      })
+    }, val === "" ? /*#__PURE__*/React.createElement("span", {
+      className: "calcinput__ph"
+    }, ph) : val);
+  };
+  const card = (who, x, setX, label, win) => {
+    const up = unitOf(x);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "calccard" + (win ? " is-win" : "")
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "calccard__head"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "calccard__label"
+    }, label), win && /*#__PURE__*/React.createElement("span", {
+      className: "badge badge--win"
+    }, "お得")), /*#__PURE__*/React.createElement("div", {
+      className: "calcrow"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "field"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "field__label"
+    }, "容量"), inputBtn(who, x, "vol", "0")), /*#__PURE__*/React.createElement("label", {
+      className: "field field--unit"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "field__label"
+    }, "単位"), /*#__PURE__*/React.createElement("select", {
+      value: x.unit,
+      onChange: e => setX(p => ({
+        ...p,
+        unit: e.target.value
+      }))
+    }, UNITS.map(u => /*#__PURE__*/React.createElement("option", {
+      key: u,
+      value: u
+    }, u)))), /*#__PURE__*/React.createElement("div", {
+      className: "field"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "field__label"
+    }, "金額(円)"), inputBtn(who, x, "price", "0"))), /*#__PURE__*/React.createElement("div", {
+      className: "calcresult"
+    }, up != null ? /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("span", {
+      className: "calcresult__label"
+    }, "1", x.unit, "あたり"), " ", /*#__PURE__*/React.createElement("strong", null, "¥", fmtUnitPrice(up))) : /*#__PURE__*/React.createElement("span", {
+      className: "calcresult__empty"
+    }, "容量と金額を入力してください")));
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "sheet",
     role: "dialog",
@@ -612,22 +692,39 @@ function Calculator({
     className: "sheet__body"
   }, /*#__PURE__*/React.createElement("p", {
     className: "calcintro"
-  }, "容量と金額を入れると、1単位あたりの金額が出ます。2つ入れるとどちらがお得か比べられます。"), /*#__PURE__*/React.createElement(Row, {
-    x: a,
-    setX: setA,
-    label: "商品A",
-    win: cheaper === "a"
-  }), useB ? /*#__PURE__*/React.createElement(Row, {
-    x: b,
-    setX: setB,
-    label: "商品B",
-    win: cheaper === "b"
-  }) : /*#__PURE__*/React.createElement("button", {
+  }, "容量と金額を入れると、1単位あたりの金額が出ます。金額欄では「128×3」のように四則演算もでき、= で計算できます。2つ入れるとどちらがお得か比べられます。"), card("a", a, setA, "商品A", cheaper === "a"), useB ? card("b", b, setB, "商品B", cheaper === "b") : /*#__PURE__*/React.createElement("button", {
     className: "btn btn--small btn--wide",
     onClick: () => setUseB(true)
   }, "＋ もう1つと比べる"), cheaper && diffPct != null && /*#__PURE__*/React.createElement("div", {
     className: "calcverdict"
-  }, cheaper === "a" ? "商品A" : "商品B", "が", diffPct > 0 ? ` 約${diffPct}% お得` : " 同じくらい", "です。")));
+  }, cheaper === "a" ? "商品A" : "商品B", "が", diffPct > 0 ? ` 約${diffPct}% お得` : " 同じくらい", "です。"), active && /*#__PURE__*/React.createElement("div", {
+    className: "keypad-spacer"
+  })), active && /*#__PURE__*/React.createElement("div", {
+    className: "keypad-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "keypad"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "keypad__grid"
+  }, KEYS.map(k => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    type: "button",
+    className: "keypad__btn" + ("÷×−+".includes(k) ? " op" : "") + (k === "⌫" ? " fn" : ""),
+    onClick: () => press(k)
+  }, k))), /*#__PURE__*/React.createElement("div", {
+    className: "keypad__side"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "keypad__btn fn",
+    onClick: () => press("C")
+  }, "C"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "keypad__btn eq",
+    onClick: () => press("=")
+  }, "="), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "keypad__btn done",
+    onClick: () => setActive(null)
+  }, "完了")))));
 }
 
 // ---------- アイテム詳細 ----------
@@ -1045,7 +1142,7 @@ function App() {
     className: "header__title"
   }, "いつもの", /*#__PURE__*/React.createElement("span", null, "買い物メモ"), /*#__PURE__*/React.createElement("small", {
     className: "header__ver"
-  }, "v7")), /*#__PURE__*/React.createElement("button", {
+  }, "v8")), /*#__PURE__*/React.createElement("button", {
     className: "calcbtn",
     onClick: openCalc,
     "aria-label": "単価計算機をひらく",
