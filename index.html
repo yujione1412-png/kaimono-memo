@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>いつもの買い物メモ</title>
+<meta name="theme-color" content="#F3F4EF" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="買い物メモ" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<style>
+:root{
+  --bg:#F3F4EF; --card:#FFFFFF; --ink:#2B2A24; --sub:#8B887C;
+  --green:#1F7A55; --green-dk:#155C40;
+  --tag:#FFE05C; --tag-edge:#F2C500; --price:#D2442A;
+  --line:#E4E2D8; --danger:#C0392B;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg)}
+.app{min-height:100vh;background:var(--bg);color:var(--ink);
+  font-family:'M PLUS Rounded 1c','Hiragino Sans','Noto Sans JP',sans-serif;
+  max-width:520px;margin:0 auto;padding-bottom:96px}
+button{font-family:inherit;cursor:pointer}
+input,textarea{font-family:inherit;font-size:16px}
+
+.header{padding:20px 16px 0;position:sticky;top:0;background:var(--bg);z-index:5}
+.header__title{font-size:22px;font-weight:800;letter-spacing:.02em}
+.header__title span{color:var(--green)}
+.header__ver{font-size:11px;color:var(--sub);font-weight:700;margin-left:8px}
+.tabs{display:flex;gap:8px;margin:14px 0 4px}
+.tabs__btn{flex:1;padding:10px;border:2px solid var(--line);border-radius:999px;
+  background:var(--card);font-weight:700;font-size:14px;color:var(--sub)}
+.tabs__btn.is-on{border-color:var(--green);color:var(--green);background:#EAF4EE}
+.tabs__count{margin-left:6px;background:var(--price);color:#fff;border-radius:999px;
+  padding:1px 7px;font-size:12px}
+
+.main{padding:12px 16px}
+.loading{padding:40px;text-align:center;color:var(--sub)}
+.alert{margin:8px 16px;padding:10px 12px;background:#FBEAE7;color:var(--danger);
+  border-radius:10px;font-size:13px}
+.search{width:100%;padding:10px 14px;border:2px solid var(--line);border-radius:12px;
+  margin-bottom:10px;background:var(--card)}
+.search:focus{outline:2px solid var(--green);outline-offset:1px}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips--filter{margin-bottom:12px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;
+  border:1.5px solid var(--line);background:var(--card);font-size:13px;font-weight:700;color:var(--sub)}
+.chip--on{border-color:var(--green);background:#EAF4EE;color:var(--green-dk)}
+.chip--clear{border-style:dashed;color:var(--danger);border-color:#E7C2BB}
+.chip__x{border:none;background:none;color:inherit;font-size:14px;padding:0 0 0 2px;line-height:1}
+.minitag{font-size:10px;font-weight:700;color:var(--green);background:#EAF4EE;
+  border-radius:999px;padding:1px 8px;margin-right:4px}
+.card__tags{margin-top:4px}
+.card__note{margin-top:4px;font-size:12px;color:#6F6C5F;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.memoarea{padding:10px 12px;border:2px solid var(--line);border-radius:10px;
+  background:var(--card);width:100%;font-family:inherit;font-size:15px;
+  line-height:1.6;resize:vertical}
+.memoarea:focus{outline:none;border-color:var(--green)}
+
+.welcome{background:var(--card);border-radius:16px;padding:28px 20px;text-align:center;
+  border:2px dashed var(--line);margin-top:12px}
+.welcome__tag{display:inline-block;background:var(--tag);border-bottom:4px solid var(--tag-edge);
+  color:var(--price);font-weight:800;font-size:24px;padding:6px 16px;border-radius:4px;margin-bottom:16px}
+.welcome h2{font-size:17px;line-height:1.6;margin-bottom:10px}
+.welcome p{font-size:14px;color:var(--sub);line-height:1.7;margin-bottom:18px}
+
+.cards{list-style:none;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--card);border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.card__body{display:flex;align-items:center;gap:12px;width:100%;padding:12px;
+  background:none;border:none;text-align:left}
+.thumb{width:64px;height:64px;border-radius:10px;background:#F0EEE5;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb--sm{width:44px;height:44px;font-size:18px}
+.card__info{flex:1;min-width:0}
+.card__name{font-weight:700;font-size:15px;line-height:1.4;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card__meta{display:flex;gap:8px;margin-top:4px;font-size:12px;color:var(--sub);flex-wrap:wrap}
+.card__memo{width:100%;padding:8px;border:none;border-top:1px dashed var(--line);
+  background:#FBFAF6;font-size:13px;font-weight:700;color:var(--green)}
+.card__memo.is-on{background:#EAF4EE;color:var(--green-dk)}
+
+.pricetag{background:var(--tag);border-bottom:3px solid var(--tag-edge);border-radius:4px;
+  padding:6px 10px;text-align:right;flex-shrink:0}
+.pricetag__main{color:var(--price);font-weight:800;font-size:18px;line-height:1;white-space:nowrap}
+.pricetag__yen{font-size:12px;margin-right:1px}
+.pricetag__incl{font-size:10px;margin-left:3px;color:#8a5a00;font-weight:700}
+.pricetag__sub{font-size:10px;color:#7d6a1e;margin-top:3px;white-space:nowrap}
+.pricetag__empty{font-size:11px;color:#8a7a30;padding:6px 2px}
+
+.fab{position:fixed;right:20px;bottom:24px;width:58px;height:58px;border-radius:50%;
+  background:var(--green);color:#fff;font-size:28px;border:none;
+  box-shadow:0 6px 16px rgba(31,122,85,.4);z-index:6}
+.fab:active{transform:scale(.95)}
+
+.total{display:flex;justify-content:space-between;align-items:baseline;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--sub)}
+.total strong{color:var(--price);font-size:17px}
+.total small{font-size:11px;color:var(--sub)}
+.memolist{list-style:none;display:flex;flex-direction:column;gap:8px}
+.memolist__item{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.memolist__item.is-done{opacity:.5}
+.memolist__item.is-done .memolist__name{text-decoration:line-through}
+.check{width:30px;height:30px;border-radius:8px;border:2px solid var(--green);
+  background:var(--card);color:var(--green);font-weight:800;font-size:16px;flex-shrink:0}
+.is-done .check{background:var(--green);color:#fff}
+.memolist__info{flex:1;min-width:0}
+.memolist__name{font-weight:700;font-size:14px}
+.memolist__meta{font-size:12px;color:var(--sub);margin-top:2px}
+
+.sheet{position:fixed;inset:0;background:var(--bg);z-index:20;overflow-y:auto;
+  max-width:520px;margin:0 auto}
+.sheet__bar{position:sticky;top:0;display:flex;justify-content:space-between;
+  padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--line);z-index:2}
+.sheet__body{padding:16px;display:flex;flex-direction:column;gap:16px;padding-bottom:60px}
+
+.photo-block{text-align:center}
+.photo{width:160px;height:160px;border-radius:16px;border:2px dashed var(--line);
+  background:var(--card);overflow:hidden;padding:0;display:inline-flex;
+  align-items:center;justify-content:center;cursor:pointer;position:relative}
+.photo img{width:100%;height:100%;object-fit:cover}
+.photo__input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+.photo__placeholder{font-size:14px;color:var(--sub);line-height:1.8}
+.photo__hint{font-size:12px;color:var(--sub);margin-top:6px}
+
+.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.field__label{font-size:12px;font-weight:700;color:var(--sub)}
+.field input{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--card);width:100%}
+.field input:focus{outline:none;border-color:var(--green)}
+.field--big input{font-size:17px;font-weight:700}
+
+.tagedit{display:flex;flex-direction:column;gap:8px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:12px}
+.tagedit__none{font-size:12px;color:var(--sub)}
+.tagedit__row{display:flex;gap:8px}
+.tagedit__row input{flex:1;padding:9px 12px;border:2px solid var(--line);border-radius:10px}
+.tagedit__row input:focus{outline:none;border-color:var(--green)}
+
+.sec-head{display:flex;justify-content:space-between;align-items:center}
+.sec-head h2{font-size:15px;font-weight:800}
+
+.sortbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sortbar__label{font-size:12px;color:var(--sub);font-weight:700}
+.sortbar__btn{padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);
+  background:var(--card);font-size:13px;font-weight:700;color:var(--sub)}
+.sortbar__btn.is-on{border-color:var(--green);background:#EAF4EE;color:var(--green-dk)}
+
+.recform{background:var(--card);border:2px solid var(--green);border-radius:14px;
+  padding:14px;display:flex;flex-direction:column;gap:12px}
+.recform__row{display:flex;gap:10px}
+.recform__hint{font-size:11px;color:var(--sub);line-height:1.6}
+.recform__actions{display:flex;gap:10px;justify-content:flex-end}
+.seg{display:flex;border:2px solid var(--line);border-radius:10px;overflow:hidden}
+.seg__btn{flex:1;padding:9px 12px;border:none;background:var(--card);font-weight:700;color:var(--sub)}
+.seg__btn.is-on{background:var(--green);color:#fff}
+
+.reclist{list-style:none;display:flex;flex-direction:column;gap:8px}
+.reclist__item{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.reclist__item.is-main{border-color:var(--tag-edge);background:#FFFBEA}
+.star{border:none;background:none;font-size:20px;color:#D8D4C4;padding:2px;flex-shrink:0}
+.star.is-on{color:var(--tag-edge)}
+.reclist__info{flex:1;min-width:0}
+.reclist__top{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--sub);flex-wrap:wrap}
+.badge{background:var(--tag);color:#8a5a00;font-size:10px;font-weight:800;
+  padding:1px 7px;border-radius:999px}
+.reclist__price{font-size:13px;margin-top:3px}
+.reclist__price strong{color:var(--price);font-size:15px}
+.reclist__excl{color:var(--sub);font-size:12px}
+.reclist__ops{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+
+.btn{padding:10px 18px;border-radius:999px;border:none;font-weight:800;font-size:14px}
+.btn--primary{background:var(--green);color:#fff}
+.btn--primary:disabled{background:#C6D6CC;cursor:default}
+.btn--ghost{background:none;color:var(--green);border:2px solid transparent}
+.btn--small{padding:6px 14px;font-size:13px;background:#EAF4EE;color:var(--green)}
+.btn--small:disabled{opacity:.4;cursor:default}
+.btn--wide{width:100%}
+.btn--danger{background:none;border:2px solid var(--danger);color:var(--danger);margin-top:8px}
+.linkbtn{background:none;border:none;color:var(--green);font-size:12px;font-weight:700;padding:2px}
+.linkbtn--danger{color:var(--danger)}
+.empty-note{font-size:13px;color:var(--sub);line-height:1.7;padding:8px 4px}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// Netlify(通常のWebサイト)用: 端末のブラウザ内に保存するlocalStorage版ストレージ
+window.storage = {
+  async get(key) {
+    const v = localStorage.getItem(key);
+    if (v === null) throw new Error("key not found: " + key);
+    return { key, value: v };
+  },
+  async set(key, value) {
+    localStorage.setItem(key, value);
+    return { key, value };
+  },
+  async delete(key) {
+    localStorage.removeItem(key);
+    return { key, deleted: true };
+  },
+  async list(prefix = "") {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) keys.push(k);
+    }
+    return { keys, prefix };
+  },
+};
+</script>
+<script>
+window.addEventListener("error", function(e){
+  var r = document.getElementById("root");
+  if (r && !r.hasChildNodes()) {
+    r.innerHTML = "<div style='padding:24px;font-family:sans-serif;color:#C0392B;line-height:1.7'><b>読み込みエラー</b><br>" + (e.message || "不明なエラー") + "<br><small>電波の良い場所で再読み込みしてみてください。</small></div>";
+  }
+});
+</script>
+<script>
+const {
+  useState,
+  useEffect,
+  useMemo
+} = React;
+
+// ---------- ユーティリティ ----------
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const today = () => new Date().toISOString().slice(0, 10);
+const yen = n => n === "" || n == null || isNaN(n) ? "—" : "¥" + Number(n).toLocaleString();
+const fmtDate = d => {
+  if (!d) return "—";
+  const [y, m, day] = d.split("-");
+  return `${y}/${Number(m)}/${Number(day)}`;
+};
+
+// 写真を縮小してdataURL化(保存容量対策)
+const compressImage = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 480;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    };
+    img.onerror = reject;
+    img.src = reader.result;
+  };
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
+
+// メイン記録(★指定がなければ最新の記録)
+const mainRecord = item => {
+  if (!item.records || item.records.length === 0) return null;
+  return item.records.find(r => r.isMain) || [...item.records].sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
+};
+
+// ---------- 値札タグ ----------
+function PriceTag({
+  record,
+  small
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "pricetag" + (small ? " pricetag--sm" : "")
+  }, record ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "pricetag__main"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "pricetag__yen"
+  }, "¥"), Number(record.priceIncl).toLocaleString(), /*#__PURE__*/React.createElement("span", {
+    className: "pricetag__incl"
+  }, "税込")), /*#__PURE__*/React.createElement("div", {
+    className: "pricetag__sub"
+  }, "税抜 ", yen(record.priceExcl))) : /*#__PURE__*/React.createElement("div", {
+    className: "pricetag__empty"
+  }, "記録なし"));
+}
+
+// ---------- 記録追加/編集フォーム ----------
+function RecordForm({
+  initial,
+  storeSuggestions,
+  onSave,
+  onCancel
+}) {
+  const [date, setDate] = useState(initial?.date || today());
+  const [store, setStore] = useState(initial?.store || "");
+  const [rate, setRate] = useState(initial?.rate ?? 10);
+  const [priceExcl, setPriceExcl] = useState(initial?.priceExcl ?? "");
+  const [priceIncl, setPriceIncl] = useState(initial?.priceIncl ?? "");
+  const onExcl = v => {
+    setPriceExcl(v);
+    if (v !== "" && !isNaN(v)) setPriceIncl(Math.round(Number(v) * (1 + rate / 100)));
+  };
+  const onIncl = v => {
+    setPriceIncl(v);
+    if (v !== "" && !isNaN(v)) setPriceExcl(Math.round(Number(v) / (1 + rate / 100)));
+  };
+  const onRate = r => {
+    setRate(r);
+    if (priceExcl !== "" && !isNaN(priceExcl)) setPriceIncl(Math.round(Number(priceExcl) * (1 + r / 100)));
+  };
+  const valid = priceIncl !== "" && !isNaN(priceIncl);
+  const storeHints = storeSuggestions.filter(s => s !== store && (store.trim() === "" || s.includes(store.trim()))).slice(0, 8);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "recform"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "recform__row"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "記録日"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: date,
+    onChange: e => setDate(e.target.value)
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "店舗"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "例: 〇〇ドラッグ",
+    value: store,
+    onChange: e => setStore(e.target.value)
+  }))), storeHints.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "chips",
+    "aria-label": "過去に使った店舗から選択"
+  }, storeHints.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s,
+    type: "button",
+    className: "chip",
+    onClick: () => setStore(s)
+  }, "🏬 ", s))), /*#__PURE__*/React.createElement("div", {
+    className: "recform__row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "税率"), /*#__PURE__*/React.createElement("div", {
+    className: "seg"
+  }, [8, 10].map(r => /*#__PURE__*/React.createElement("button", {
+    key: r,
+    type: "button",
+    className: "seg__btn" + (rate === r ? " is-on" : ""),
+    onClick: () => onRate(r)
+  }, r, "%")))), /*#__PURE__*/React.createElement("label", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "税抜価格"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    inputMode: "numeric",
+    placeholder: "0",
+    value: priceExcl,
+    onChange: e => onExcl(e.target.value)
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "税込価格"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    inputMode: "numeric",
+    placeholder: "0",
+    value: priceIncl,
+    onChange: e => onIncl(e.target.value)
+  }))), /*#__PURE__*/React.createElement("p", {
+    className: "recform__hint"
+  }, "買っていなくてもOK。店頭で見かけた価格のメモにも使えます。金額はどちらか一方を入力すると税率からもう片方を自動計算します。"), /*#__PURE__*/React.createElement("div", {
+    className: "recform__actions"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn btn--ghost",
+    onClick: onCancel
+  }, "キャンセル"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn btn--primary",
+    disabled: !valid,
+    onClick: () => onSave({
+      id: initial?.id || uid(),
+      date,
+      store: store.trim(),
+      rate,
+      priceExcl: priceExcl === "" ? "" : Number(priceExcl),
+      priceIncl: Number(priceIncl),
+      isMain: initial?.isMain || false
+    })
+  }, initial ? "記録を更新" : "記録を追加")));
+}
+
+// ---------- タグ編集 ----------
+function TagEditor({
+  tags,
+  allTags,
+  onChange
+}) {
+  const [input, setInput] = useState("");
+  const hints = allTags.filter(t => !tags.includes(t) && (input.trim() === "" || t.includes(input.trim()))).slice(0, 10);
+  const add = name => {
+    const t = name.trim();
+    if (!t || tags.includes(t)) return;
+    onChange([...tags, t]);
+    setInput("");
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "tagedit"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "chips"
+  }, tags.map(t => /*#__PURE__*/React.createElement("span", {
+    key: t,
+    className: "chip chip--on"
+  }, "#", t, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "chip__x",
+    "aria-label": "タグ " + t + " を外す",
+    onClick: () => onChange(tags.filter(x => x !== t))
+  }, "×"))), tags.length === 0 && /*#__PURE__*/React.createElement("span", {
+    className: "tagedit__none"
+  }, "タグなし")), /*#__PURE__*/React.createElement("div", {
+    className: "tagedit__row"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "新しいタグ(例: 洗剤)",
+    value: input,
+    onChange: e => setInput(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+        e.preventDefault();
+        add(input);
+      }
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn btn--small",
+    disabled: !input.trim(),
+    onClick: () => add(input)
+  }, "追加")), hints.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "chips",
+    "aria-label": "登録済みのタグから選択"
+  }, hints.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    type: "button",
+    className: "chip",
+    onClick: () => add(t)
+  }, "#", t))));
+}
+
+// ---------- アイテム詳細(新規/編集) ----------
+function ItemDetail({
+  item,
+  allStores,
+  allTags,
+  onSave,
+  onDelete,
+  onClose
+}) {
+  const [draft, setDraft] = useState(() => {
+    const d = JSON.parse(JSON.stringify(item));
+    d.tags = d.tags || [];
+    d.memo = d.memo || "";
+    return d;
+  });
+  const [showForm, setShowForm] = useState(item.records.length === 0);
+  const [editingRec, setEditingRec] = useState(null);
+  const [sortKey, setSortKey] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
+  const isNew = !item._saved;
+  const pickPhoto = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImage(file);
+      setDraft(d => ({
+        ...d,
+        photo: dataUrl
+      }));
+    } catch {
+      alert("写真の読み込みに失敗しました。別の画像でお試しください。");
+    }
+    e.target.value = "";
+  };
+  const saveRecord = rec => {
+    setDraft(d => {
+      const exists = d.records.some(r => r.id === rec.id);
+      let records = exists ? d.records.map(r => r.id === rec.id ? rec : r) : [...d.records, rec];
+      if (records.length === 1) records[0].isMain = true;
+      return {
+        ...d,
+        records
+      };
+    });
+    setShowForm(false);
+    setEditingRec(null);
+  };
+  const setMain = id => setDraft(d => ({
+    ...d,
+    records: d.records.map(r => ({
+      ...r,
+      isMain: r.id === id
+    }))
+  }));
+  const deleteRecord = id => setDraft(d => ({
+    ...d,
+    records: d.records.filter(r => r.id !== id)
+  }));
+  const toggleSort = key => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir(key === "store" ? "asc" : "desc");
+    }
+  };
+  const sorted = [...draft.records].sort((a, b) => {
+    let c = 0;
+    if (sortKey === "date") c = (a.date || "").localeCompare(b.date || "");else if (sortKey === "price") c = (Number(a.priceIncl) || 0) - (Number(b.priceIncl) || 0);else c = (a.store || "").localeCompare(b.store || "", "ja");
+    return sortDir === "asc" ? c : -c;
+  });
+  const canSave = draft.name.trim() !== "";
+  const arrow = sortDir === "asc" ? "▲" : "▼";
+  const sortLabels = {
+    date: "日付",
+    price: "金額",
+    store: "店舗"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "sheet",
+    role: "dialog",
+    "aria-label": "アイテムの編集"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sheet__bar"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--ghost",
+    onClick: onClose
+  }, "← 戻る"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--primary",
+    disabled: !canSave,
+    onClick: () => onSave(draft)
+  }, "保存")), /*#__PURE__*/React.createElement("div", {
+    className: "sheet__body"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "photo-block"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "photo",
+    "aria-label": "パッケージ写真を設定"
+  }, draft.photo ? /*#__PURE__*/React.createElement("img", {
+    src: draft.photo,
+    alt: ""
+  }) : /*#__PURE__*/React.createElement("span", {
+    className: "photo__placeholder"
+  }, "📷", /*#__PURE__*/React.createElement("br", null), "パッケージを撮影"), /*#__PURE__*/React.createElement("input", {
+    className: "photo__input",
+    type: "file",
+    accept: "image/*",
+    onChange: pickPhoto
+  })), /*#__PURE__*/React.createElement("p", {
+    className: "photo__hint"
+  }, "タップで撮影 / 写真を選択")), /*#__PURE__*/React.createElement("label", {
+    className: "field field--big"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "商品名"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "例: 食器用洗剤 詰め替え",
+    value: draft.name,
+    onChange: e => setDraft(d => ({
+      ...d,
+      name: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "タグ"), /*#__PURE__*/React.createElement(TagEditor, {
+    tags: draft.tags,
+    allTags: allTags,
+    onChange: tags => setDraft(d => ({
+      ...d,
+      tags
+    }))
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "field__label"
+  }, "メモ"), /*#__PURE__*/React.createElement("textarea", {
+    className: "memoarea",
+    rows: 3,
+    placeholder: "例: 詰め替え2回分がお得 / 底値は¥298",
+    value: draft.memo,
+    onChange: e => setDraft(d => ({
+      ...d,
+      memo: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "sec-head"
+  }, /*#__PURE__*/React.createElement("h2", null, "記録履歴"), !showForm && !editingRec && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--small",
+    onClick: () => setShowForm(true)
+  }, "+ 記録を追加")), showForm && /*#__PURE__*/React.createElement(RecordForm, {
+    storeSuggestions: allStores,
+    onSave: saveRecord,
+    onCancel: () => setShowForm(false)
+  }), editingRec && /*#__PURE__*/React.createElement(RecordForm, {
+    initial: editingRec,
+    storeSuggestions: allStores,
+    onSave: saveRecord,
+    onCancel: () => setEditingRec(null)
+  }), draft.records.length > 1 && /*#__PURE__*/React.createElement("div", {
+    className: "sortbar",
+    role: "group",
+    "aria-label": "記録の並び替え"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "sortbar__label"
+  }, "並び順"), ["date", "price", "store"].map(k => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: "sortbar__btn" + (sortKey === k ? " is-on" : ""),
+    onClick: () => toggleSort(k)
+  }, sortLabels[k], sortKey === k ? " " + arrow : ""))), sorted.length === 0 && !showForm && /*#__PURE__*/React.createElement("p", {
+    className: "empty-note"
+  }, "まだ記録がありません。「+ 記録を追加」から、日付・金額・店舗を残せます(買っていない日の価格メモもOK)。"), /*#__PURE__*/React.createElement("ul", {
+    className: "reclist"
+  }, sorted.map(r => /*#__PURE__*/React.createElement("li", {
+    key: r.id,
+    className: "reclist__item" + (r.isMain ? " is-main" : "")
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "star" + (r.isMain ? " is-on" : ""),
+    onClick: () => setMain(r.id),
+    "aria-label": "この記録をメインに設定",
+    title: "メインに設定(一覧に表示されます)"
+  }, "★"), /*#__PURE__*/React.createElement("div", {
+    className: "reclist__info"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "reclist__top"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "reclist__date"
+  }, fmtDate(r.date)), /*#__PURE__*/React.createElement("span", {
+    className: "reclist__store"
+  }, r.store || "店舗未記入"), r.isMain && /*#__PURE__*/React.createElement("span", {
+    className: "badge"
+  }, "メイン")), /*#__PURE__*/React.createElement("div", {
+    className: "reclist__price"
+  }, /*#__PURE__*/React.createElement("strong", null, yen(r.priceIncl)), " 税込", /*#__PURE__*/React.createElement("span", {
+    className: "reclist__excl"
+  }, " / 税抜 ", yen(r.priceExcl)))), /*#__PURE__*/React.createElement("div", {
+    className: "reclist__ops"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "linkbtn",
+    onClick: () => {
+      setShowForm(false);
+      setEditingRec(r);
+    }
+  }, "編集"), /*#__PURE__*/React.createElement("button", {
+    className: "linkbtn linkbtn--danger",
+    onClick: () => deleteRecord(r.id)
+  }, "削除"))))), !isNew && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--danger",
+    onClick: () => {
+      if (confirm("「" + draft.name + "」を削除しますか?記録もすべて消えます。")) onDelete(draft.id);
+    }
+  }, "このアイテムを削除")));
+}
+
+// ---------- メイン ----------
+function App() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saveError, setSaveError] = useState(false);
+  const [tab, setTab] = useState("items");
+  const [detail, setDetail] = useState(null);
+  const [query, setQuery] = useState("");
+  const [tagFilter, setTagFilter] = useState([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await window.storage.list("item:");
+        const keys = res?.keys || [];
+        const loaded = [];
+        for (const k of keys) {
+          try {
+            const v = await window.storage.get(typeof k === "string" ? k : k.key);
+            if (v?.value) {
+              const it = JSON.parse(v.value);
+              it.tags = it.tags || [];
+              it.memo = it.memo || "";
+              loaded.push({
+                ...it,
+                _saved: true
+              });
+            }
+          } catch {}
+        }
+        loaded.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ja"));
+        setItems(loaded);
+      } catch {}
+      setLoading(false);
+    })();
+  }, []);
+  const persist = async item => {
+    try {
+      const {
+        _saved,
+        ...data
+      } = item;
+      await window.storage.set("item:" + item.id, JSON.stringify(data));
+      setSaveError(false);
+    } catch {
+      setSaveError(true);
+    }
+  };
+  const saveItem = async draft => {
+    const item = {
+      ...draft,
+      name: draft.name.trim(),
+      _saved: true
+    };
+    setItems(list => {
+      const exists = list.some(i => i.id === item.id);
+      const next = exists ? list.map(i => i.id === item.id ? item : i) : [...list, item];
+      return next.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ja"));
+    });
+    setDetail(null);
+    await persist(item);
+  };
+  const deleteItem = async id => {
+    setItems(list => list.filter(i => i.id !== id));
+    setDetail(null);
+    try {
+      await window.storage.delete("item:" + id);
+    } catch {}
+  };
+  const toggleField = async (id, field) => {
+    setItems(list => list.map(i => i.id === id ? {
+      ...i,
+      [field]: !i[field],
+      ...(field === "onList" && i.onList ? {
+        checked: false
+      } : {})
+    } : i));
+    const cur = items.find(i => i.id === id);
+    if (cur) {
+      const next = {
+        ...cur,
+        [field]: !cur[field]
+      };
+      if (field === "onList" && !next.onList) next.checked = false;
+      await persist(next);
+    }
+  };
+  const newItem = () => setDetail({
+    id: uid(),
+    name: "",
+    photo: null,
+    records: [],
+    tags: [],
+    memo: "",
+    onList: false,
+    checked: false
+  });
+  const allStores = useMemo(() => {
+    const set = new Set();
+    items.forEach(i => i.records.forEach(r => {
+      if (r.store) set.add(r.store);
+    }));
+    return [...set].sort((a, b) => a.localeCompare(b, "ja"));
+  }, [items]);
+  const allTags = useMemo(() => {
+    const set = new Set();
+    items.forEach(i => (i.tags || []).forEach(t => set.add(t)));
+    return [...set].sort((a, b) => a.localeCompare(b, "ja"));
+  }, [items]);
+  const toggleTagFilter = t => setTagFilter(f => f.includes(t) ? f.filter(x => x !== t) : [...f, t]);
+  const filtered = useMemo(() => {
+    const q = query.trim();
+    return items.filter(i => {
+      const hitQ = !q || i.name.includes(q) || i.records.some(r => (r.store || "").includes(q));
+      const hitT = tagFilter.length === 0 || tagFilter.every(t => (i.tags || []).includes(t));
+      return hitQ && hitT;
+    });
+  }, [items, query, tagFilter]);
+  const memoItems = items.filter(i => i.onList);
+  const remaining = memoItems.filter(i => !i.checked);
+  const estTotal = remaining.reduce((s, i) => s + (Number(mainRecord(i)?.priceIncl) || 0), 0);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "app"
+  }, /*#__PURE__*/React.createElement("header", {
+    className: "header"
+  }, /*#__PURE__*/React.createElement("h1", {
+    className: "header__title"
+  }, "いつもの", /*#__PURE__*/React.createElement("span", null, "買い物メモ"), /*#__PURE__*/React.createElement("small", {
+    className: "header__ver"
+  }, "v6")), /*#__PURE__*/React.createElement("nav", {
+    className: "tabs",
+    role: "tablist"
+  }, /*#__PURE__*/React.createElement("button", {
+    role: "tab",
+    "aria-selected": tab === "items",
+    className: "tabs__btn" + (tab === "items" ? " is-on" : ""),
+    onClick: () => setTab("items")
+  }, "アイテム帳"), /*#__PURE__*/React.createElement("button", {
+    role: "tab",
+    "aria-selected": tab === "memo",
+    className: "tabs__btn" + (tab === "memo" ? " is-on" : ""),
+    onClick: () => setTab("memo")
+  }, "買い物メモ", memoItems.length > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "tabs__count"
+  }, remaining.length)))), saveError && /*#__PURE__*/React.createElement("div", {
+    className: "alert"
+  }, "保存に失敗しました。ブラウザの空き容量を確認して、もう一度お試しください。"), loading ? /*#__PURE__*/React.createElement("p", {
+    className: "loading"
+  }, "読み込み中…") : tab === "items" ? /*#__PURE__*/React.createElement("main", {
+    className: "main"
+  }, items.length > 3 && /*#__PURE__*/React.createElement("input", {
+    className: "search",
+    type: "search",
+    placeholder: "商品名・店舗で探す",
+    value: query,
+    onChange: e => setQuery(e.target.value)
+  }), allTags.length > 0 && items.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "chips chips--filter",
+    "aria-label": "タグで絞り込み"
+  }, allTags.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    className: "chip" + (tagFilter.includes(t) ? " chip--on" : ""),
+    onClick: () => toggleTagFilter(t)
+  }, "#", t)), tagFilter.length > 0 && /*#__PURE__*/React.createElement("button", {
+    className: "chip chip--clear",
+    onClick: () => setTagFilter([])
+  }, "絞り込み解除")), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "welcome"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "welcome__tag"
+  }, "¥ __ ", /*#__PURE__*/React.createElement("small", null, "税込")), /*#__PURE__*/React.createElement("h2", null, "いつも買う日用品を、値札ごと覚えておくノートです。"), /*#__PURE__*/React.createElement("p", null, "パッケージの写真・記録日・税込/税抜価格・店舗を記録して、次の買い物のメモに使えます。"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--primary btn--wide",
+    onClick: newItem
+  }, "最初のアイテムを登録")) : /*#__PURE__*/React.createElement("ul", {
+    className: "cards"
+  }, filtered.map(item => {
+    const main = mainRecord(item);
+    return /*#__PURE__*/React.createElement("li", {
+      key: item.id,
+      className: "card"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "card__body",
+      onClick: () => setDetail(item)
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "thumb"
+    }, item.photo ? /*#__PURE__*/React.createElement("img", {
+      src: item.photo,
+      alt: ""
+    }) : /*#__PURE__*/React.createElement("span", null, "📦")), /*#__PURE__*/React.createElement("div", {
+      className: "card__info"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "card__name"
+    }, item.name), /*#__PURE__*/React.createElement("div", {
+      className: "card__meta"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "card__store"
+    }, "🏬 ", main?.store || "店舗未記入"), /*#__PURE__*/React.createElement("span", {
+      className: "card__date"
+    }, main ? fmtDate(main.date) : "")), (item.memo || "").trim() !== "" && /*#__PURE__*/React.createElement("div", {
+      className: "card__note"
+    }, "📝 ", item.memo.split("\n")[0]), (item.tags || []).length > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "card__tags"
+    }, item.tags.map(t => /*#__PURE__*/React.createElement("span", {
+      key: t,
+      className: "minitag"
+    }, "#", t)))), /*#__PURE__*/React.createElement(PriceTag, {
+      record: main,
+      small: true
+    })), /*#__PURE__*/React.createElement("button", {
+      className: "card__memo" + (item.onList ? " is-on" : ""),
+      onClick: () => toggleField(item.id, "onList"),
+      "aria-pressed": item.onList
+    }, item.onList ? "メモ済 ✓" : "メモに入れる"));
+  }), filtered.length === 0 && /*#__PURE__*/React.createElement("p", {
+    className: "empty-note"
+  }, "条件に合うアイテムが見つかりません。検索語やタグの絞り込みを見直してみてください。")), items.length > 0 && /*#__PURE__*/React.createElement("button", {
+    className: "fab",
+    onClick: newItem,
+    "aria-label": "アイテムを追加"
+  }, "＋")) : /*#__PURE__*/React.createElement("main", {
+    className: "main"
+  }, memoItems.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "welcome"
+  }, /*#__PURE__*/React.createElement("h2", null, "買い物メモは空です。"), /*#__PURE__*/React.createElement("p", null, "アイテム帳で「メモに入れる」を押すと、ここに買う物リストとして並びます。"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--ghost",
+    onClick: () => setTab("items")
+  }, "アイテム帳を開く")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "total"
+  }, /*#__PURE__*/React.createElement("span", null, "残り ", remaining.length, " 点"), /*#__PURE__*/React.createElement("strong", null, "合計めやす ", yen(estTotal), " ", /*#__PURE__*/React.createElement("small", null, "税込"))), /*#__PURE__*/React.createElement("ul", {
+    className: "memolist"
+  }, [...memoItems].sort((a, b) => Number(a.checked) - Number(b.checked)).map(item => {
+    const main = mainRecord(item);
+    return /*#__PURE__*/React.createElement("li", {
+      key: item.id,
+      className: "memolist__item" + (item.checked ? " is-done" : "")
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "check",
+      onClick: () => toggleField(item.id, "checked"),
+      "aria-pressed": item.checked
+    }, item.checked ? "✓" : ""), /*#__PURE__*/React.createElement("div", {
+      className: "thumb thumb--sm"
+    }, item.photo ? /*#__PURE__*/React.createElement("img", {
+      src: item.photo,
+      alt: ""
+    }) : /*#__PURE__*/React.createElement("span", null, "📦")), /*#__PURE__*/React.createElement("div", {
+      className: "memolist__info"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "memolist__name"
+    }, item.name), /*#__PURE__*/React.createElement("div", {
+      className: "memolist__meta"
+    }, main ? (main.store || "店舗未記入") + " ・ " + yen(main.priceIncl) + " 税込(税抜 " + yen(main.priceExcl) + ")" : "価格の記録なし")), /*#__PURE__*/React.createElement("button", {
+      className: "linkbtn",
+      onClick: () => toggleField(item.id, "onList")
+    }, "外す"));
+  })))), detail && /*#__PURE__*/React.createElement(ItemDetail, {
+    item: detail,
+    allStores: allStores,
+    allTags: allTags,
+    onSave: saveItem,
+    onDelete: deleteItem,
+    onClose: () => setDetail(null)
+  }));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
+</script>
+</body>
+</html>
