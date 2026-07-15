@@ -259,12 +259,28 @@ input,textarea,select{font-family:inherit;font-size:16px;color:var(--ink)}
 
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 
+/* --- v10 追加: 写真の撮影/選択メニュー --- */
+.pmodal{position:fixed;inset:0;background:rgba(40,36,24,.45);z-index:55;
+  display:flex;align-items:flex-end;justify-content:center}
+.pmodal__box{width:100%;max-width:520px;background:var(--card);
+  border-radius:20px 20px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:10px;animation:sheetup .18s ease-out}
+@keyframes sheetup{from{transform:translateY(24px);opacity:.6}to{transform:translateY(0);opacity:1}}
+.pmodal__btn{display:block;width:100%;text-align:center;padding:15px;border:none;
+  background:#F4F1E6;border-radius:14px;font-weight:900;font-size:15px;cursor:pointer;position:relative}
+.pmodal__btn:active{background:#EAE6D6}
+.pmodal__cancel{background:none;color:var(--sub);font-size:14px;padding:10px}
+
+/* --- v10 追加: 詳細シート内のキーパッド --- */
+.keypad-wrap{z-index:50}
+.keypad-wrap--flush{bottom:0}
+.keypad-wrap--flush .keypad{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
-// 通常のWebサイト用: 端末のブラウザ内(localStorage)に保存
 window.storage = {
   async get(key){ const v = localStorage.getItem(key); if(v===null) throw new Error("key not found: "+key); return {key, value:v}; },
   async set(key, value){ localStorage.setItem(key, value); return {key, value}; },
@@ -325,8 +341,8 @@ const cheapestId = records => {
 };
 const unitPriceOf = item => {
   const main = mainRecord(item);
-  const vol = Number(item.volume);
-  if (!main || item.volume === "" || item.volume == null || isNaN(vol) || vol <= 0) return null;
+  const vol = evalExpr(item.volume); // 容量は「3×50」のような式でもOK(150として計算)
+  if (!main || vol == null || vol <= 0) return null;
   return Number(main.priceIncl) / vol;
 };
 
@@ -362,6 +378,20 @@ const evalExpr = s => {
   }
   if (!isFinite(r)) return null;
   return parseFloat(r.toFixed(4));
+};
+
+// キーパッドの1打鍵ぶんの編集(電卓・容量入力で共用)
+const keypadEdit = (c, k) => {
+  c = String(c ?? "");
+  if (k === "C") return "";
+  if (k === "⌫") return c.slice(0, -1);
+  if (k === "=") {
+    const r = evalExpr(c);
+    return r == null ? c : String(r);
+  }
+  if ("+-×÷−".includes(k) && /[+\-×÷−]$/.test(c)) return c.slice(0, -1) + k;
+  if (k === "." && /\.\d*$/.test(c)) return c;
+  return c + k;
 };
 const compressImage = file => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -590,10 +620,11 @@ function TagEditor({
 const KEYS = ["7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "−", "0", ".", "⌫", "+"];
 function Keypad({
   onKey,
-  onDone
+  onDone,
+  flush
 }) {
   return /*#__PURE__*/React.createElement("div", {
-    className: "keypad-wrap"
+    className: "keypad-wrap" + (flush ? " keypad-wrap--flush" : "")
   }, /*#__PURE__*/React.createElement("div", {
     className: "keypad"
   }, /*#__PURE__*/React.createElement("div", {
@@ -643,18 +674,10 @@ function CalcView() {
       [active.field]: typeof updater === "function" ? updater(prev[active.field]) : updater
     }));
   };
-  const press = k => {
-    if (k === "C") return setVal("");
-    if (k === "⌫") return setVal(c => c.slice(0, -1));
-    if (k === "=") return setVal(c => {
-      const r = evalExpr(c);
-      return r == null ? c : String(r);
-    });
-    setVal(c => {
-      if ("+-×÷−".includes(k) && /[+\-×÷−]$/.test(c)) return c.slice(0, -1) + k;
-      if (k === "." && /\.\d*$/.test(c)) return c;
-      return c + k;
-    });
+  const press = k => setVal(c => keypadEdit(c, k));
+  const done = () => {
+    setVal(c => keypadEdit(c, "=")); // 完了時に式を計算して結果表示(例: 3×50 → 150)
+    setActive(null);
   };
   const unitOf = x => {
     const v = evalExpr(x.vol),
@@ -727,7 +750,7 @@ function CalcView() {
     className: "keypad-spacer"
   }), active && /*#__PURE__*/React.createElement(Keypad, {
     onKey: press,
-    onDone: () => setActive(null)
+    onDone: done
   }));
 }
 
@@ -752,9 +775,12 @@ function ItemDetail({
   const [editingRec, setEditingRec] = useState(null);
   const [sortKey, setSortKey] = useState("date");
   const [sortDir, setSortDir] = useState("desc");
+  const [photoMenu, setPhotoMenu] = useState(false); // 撮影/選択メニュー
+  const [volPad, setVolPad] = useState(false); // 容量キーパッド
   const isNew = !item._saved;
   const pickPhoto = async e => {
     const file = e.target.files?.[0];
+    setPhotoMenu(false);
     if (!file) return;
     try {
       const dataUrl = await compressImage(file);
@@ -767,6 +793,10 @@ function ItemDetail({
     }
     e.target.value = "";
   };
+  const volPress = k => setDraft(d => ({
+    ...d,
+    volume: keypadEdit(d.volume, k)
+  }));
   const saveRecord = rec => {
     setDraft(d => {
       const exists = d.records.some(r => r.id === rec.id);
@@ -830,20 +860,17 @@ function ItemDetail({
     className: "sheet__body"
   }, /*#__PURE__*/React.createElement("div", {
     className: "idhead"
-  }, /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
     className: "photo",
-    "aria-label": "パッケージ写真を設定"
+    "aria-label": "パッケージ写真を設定",
+    onClick: () => setPhotoMenu(true)
   }, draft.photo ? /*#__PURE__*/React.createElement("img", {
     src: draft.photo,
     alt: ""
   }) : /*#__PURE__*/React.createElement("span", {
     className: "photo__ph"
-  }, "📷", /*#__PURE__*/React.createElement("br", null), "写真"), /*#__PURE__*/React.createElement("input", {
-    className: "photo__input",
-    type: "file",
-    accept: "image/*",
-    onChange: pickPhoto
-  })), /*#__PURE__*/React.createElement("div", {
+  }, "📷", /*#__PURE__*/React.createElement("br", null), "写真")), /*#__PURE__*/React.createElement("div", {
     className: "idhead__fields"
   }, /*#__PURE__*/React.createElement("label", {
     className: "field field--big"
@@ -859,20 +886,17 @@ function ItemDetail({
     }))
   })), /*#__PURE__*/React.createElement("div", {
     className: "frow"
-  }, /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", {
     className: "field__label"
-  }, "容量"), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    inputMode: "decimal",
-    placeholder: "例: 500",
-    value: draft.volume,
-    onChange: e => setDraft(d => ({
-      ...d,
-      volume: e.target.value
-    }))
-  })), /*#__PURE__*/React.createElement("label", {
+  }, "容量(式もOK)"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "calcinput" + (volPad ? " is-active" : ""),
+    onClick: () => setVolPad(true)
+  }, String(draft.volume ?? "") === "" ? /*#__PURE__*/React.createElement("span", {
+    className: "calcinput__ph"
+  }, "例: 3×50") : draft.volume)), /*#__PURE__*/React.createElement("label", {
     className: "field field--unit"
   }, /*#__PURE__*/React.createElement("span", {
     className: "field__label"
@@ -885,9 +909,34 @@ function ItemDetail({
   }, UNITS.map(u => /*#__PURE__*/React.createElement("option", {
     key: u,
     value: u
-  }, u))))))), up != null && /*#__PURE__*/React.createElement("div", {
+  }, u))))))), photoMenu && /*#__PURE__*/React.createElement("div", {
+    className: "pmodal",
+    onClick: () => setPhotoMenu(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pmodal__box",
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "pmodal__btn"
+  }, "📷 カメラで撮影", /*#__PURE__*/React.createElement("input", {
+    className: "photo__input",
+    type: "file",
+    accept: "image/*",
+    capture: "environment",
+    onChange: pickPhoto
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "pmodal__btn"
+  }, "🖼 写真から選ぶ", /*#__PURE__*/React.createElement("input", {
+    className: "photo__input",
+    type: "file",
+    accept: "image/*",
+    onChange: pickPhoto
+  })), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pmodal__btn pmodal__cancel",
+    onClick: () => setPhotoMenu(false)
+  }, "キャンセル"))), up != null && /*#__PURE__*/React.createElement("div", {
     className: "unitbanner"
-  }, "メインの記録で 1", draft.unit, "あたり ", /*#__PURE__*/React.createElement("b", null, "¥", up)), /*#__PURE__*/React.createElement("div", {
+  }, /[+\-×÷−]/.test(String(draft.volume)) && /*#__PURE__*/React.createElement("span", null, "容量 ", draft.volume, " → ", evalExpr(draft.volume), draft.unit, " ・ "), "メインの記録で 1", draft.unit, "あたり ", /*#__PURE__*/React.createElement("b", null, "¥", up)), /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", {
     className: "field__label"
@@ -973,7 +1022,13 @@ function ItemDetail({
     onClick: () => {
       if (confirm("「" + draft.name + "」を削除しますか?記録もすべて消えます。")) onDelete(draft.id);
     }
-  }, "このアイテムを削除")));
+  }, "このアイテムを削除"), volPad && /*#__PURE__*/React.createElement("div", {
+    className: "keypad-spacer"
+  })), volPad && /*#__PURE__*/React.createElement(Keypad, {
+    flush: true,
+    onKey: volPress,
+    onDone: () => setVolPad(false)
+  }));
 }
 
 // ---------- メイン ----------
@@ -1188,7 +1243,7 @@ function App() {
     className: "header__title"
   }, "いつもの", /*#__PURE__*/React.createElement("span", null, "買い物メモ"), /*#__PURE__*/React.createElement("small", {
     className: "header__ver"
-  }, "v9"))), saveError && /*#__PURE__*/React.createElement("div", {
+  }, "v10"))), saveError && /*#__PURE__*/React.createElement("div", {
     className: "alertbar"
   }, "保存に失敗しました。ブラウザの空き容量を確認してください。"), /*#__PURE__*/React.createElement(Toast, {
     msg: toast
