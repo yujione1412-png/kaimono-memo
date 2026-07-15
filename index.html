@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>いつもの買い物メモ</title>
-<meta name="theme-color" content="#F3F4EF" />
+<meta name="theme-color" content="#F6F3E9" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="買い物メモ" />
@@ -13,253 +13,258 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet" />
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <style>
 :root{
-  --bg:#F3F4EF; --card:#FFFFFF; --ink:#2B2A24; --sub:#8B887C;
-  --green:#1F7A55; --green-dk:#155C40;
-  --tag:#FFE05C; --tag-edge:#F2C500; --price:#D2442A;
-  --line:#E4E2D8; --danger:#C0392B;
+  --bg:#F6F3E9; --card:#FFFFFF; --ink:#33302A; --sub:#8F8A7B;
+  --green:#217A55; --green-dk:#14563C; --green-bg:#E9F3EC;
+  --tag:#FFDF54; --tag-edge:#EFC400; --tag-ink:#8A5A00; --price:#D63B26;
+  --line:#E7E2D3; --danger:#C0392B;
+  --nav-h:64px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg)}
+html,body{background:var(--bg)}
 .app{min-height:100vh;background:var(--bg);color:var(--ink);
-  font-family:'M PLUS Rounded 1c','Hiragino Sans','Noto Sans JP',sans-serif;
-  max-width:520px;margin:0 auto;padding-bottom:96px}
-button{font-family:inherit;cursor:pointer}
-input,textarea{font-family:inherit;font-size:16px}
+  font-family:'Zen Maru Gothic','M PLUS Rounded 1c','Hiragino Sans','Noto Sans JP',sans-serif;
+  max-width:520px;margin:0 auto;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px)}
+button{font-family:inherit;cursor:pointer;color:inherit}
+input,textarea,select{font-family:inherit;font-size:16px;color:var(--ink)}
 
-.header{padding:20px 16px 0;position:sticky;top:0;background:var(--bg);z-index:5}
-.header__title{font-size:22px;font-weight:800;letter-spacing:.02em}
+/* ---------- ヘッダー ---------- */
+.header{padding:18px 16px 8px;position:sticky;top:0;background:linear-gradient(var(--bg) 82%,transparent);z-index:5}
+.header__title{font-size:21px;font-weight:900;letter-spacing:.03em}
 .header__title span{color:var(--green)}
-.header__ver{font-size:11px;color:var(--sub);font-weight:700;margin-left:8px}
-.tabs{display:flex;gap:8px;margin:14px 0 4px}
-.tabs__btn{flex:1;padding:10px;border:2px solid var(--line);border-radius:999px;
-  background:var(--card);font-weight:700;font-size:14px;color:var(--sub)}
-.tabs__btn.is-on{border-color:var(--green);color:var(--green);background:#EAF4EE}
-.tabs__count{margin-left:6px;background:var(--price);color:#fff;border-radius:999px;
-  padding:1px 7px;font-size:12px}
+.header__ver{font-size:10px;color:var(--sub);font-weight:700;margin-left:8px;vertical-align:2px}
 
-.main{padding:12px 16px}
-.loading{padding:40px;text-align:center;color:var(--sub)}
-.alert{margin:8px 16px;padding:10px 12px;background:#FBEAE7;color:var(--danger);
-  border-radius:10px;font-size:13px}
-.search{width:100%;padding:10px 14px;border:2px solid var(--line);border-radius:12px;
-  margin-bottom:10px;background:var(--card)}
-.search:focus{outline:2px solid var(--green);outline-offset:1px}
+/* ---------- 共通 ---------- */
+.main{padding:8px 16px 24px}
+.loading{padding:48px;text-align:center;color:var(--sub)}
+.muted{font-size:13px;color:var(--sub);line-height:1.7;padding:6px 2px}
+.hint{font-size:12px;color:var(--sub);line-height:1.7}
+.alertbar{margin:6px 16px;padding:10px 12px;background:#FBEAE7;color:var(--danger);border-radius:10px;font-size:13px}
+.frow{display:flex;gap:10px;align-items:flex-end}
+.frow--end{justify-content:flex-end}
+.search{width:100%;padding:11px 14px;border:2px solid var(--line);border-radius:14px;margin-bottom:10px;background:var(--card)}
+.search:focus{outline:none;border-color:var(--green)}
 
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips--filter{margin-bottom:12px}
+.toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:60;
+  background:var(--green-dk);color:#fff;font-weight:700;font-size:13px;
+  padding:10px 18px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);
+  animation:toastin .18s ease-out}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ---------- チップ ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips--filter{margin:2px 0 12px}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;
   border:1.5px solid var(--line);background:var(--card);font-size:13px;font-weight:700;color:var(--sub)}
-.chip--on{border-color:var(--green);background:#EAF4EE;color:var(--green-dk)}
+.chip--on{border-color:var(--green);background:var(--green-bg);color:var(--green-dk)}
 .chip--clear{border-style:dashed;color:var(--danger);border-color:#E7C2BB}
-.chip__x{border:none;background:none;color:inherit;font-size:14px;padding:0 0 0 2px;line-height:1}
-.minitag{font-size:10px;font-weight:700;color:var(--green);background:#EAF4EE;
-  border-radius:999px;padding:1px 8px;margin-right:4px}
-.card__tags{margin-top:4px}
-.card__note{margin-top:4px;font-size:12px;color:#6F6C5F;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.memoarea{padding:10px 12px;border:2px solid var(--line);border-radius:10px;
-  background:var(--card);width:100%;font-family:inherit;font-size:15px;
-  line-height:1.6;resize:vertical}
-.memoarea:focus{outline:none;border-color:var(--green)}
+.chip__x{border:none;background:none;font-size:14px;padding:0 0 0 2px;line-height:1}
+.listtools{margin-bottom:8px}
+.minitag{font-size:10px;font-weight:700;color:var(--green);background:var(--green-bg);border-radius:999px;padding:1px 8px;margin-right:4px}
 
-.welcome{background:var(--card);border-radius:16px;padding:28px 20px;text-align:center;
-  border:2px dashed var(--line);margin-top:12px}
-.welcome__tag{display:inline-block;background:var(--tag);border-bottom:4px solid var(--tag-edge);
-  color:var(--price);font-weight:800;font-size:24px;padding:6px 16px;border-radius:4px;margin-bottom:16px}
-.welcome h2{font-size:17px;line-height:1.6;margin-bottom:10px}
-.welcome p{font-size:14px;color:var(--sub);line-height:1.7;margin-bottom:18px}
-
-.cards{list-style:none;display:flex;flex-direction:column;gap:10px}
-.card{background:var(--card);border-radius:14px;border:1px solid var(--line);overflow:hidden}
-.card__body{display:flex;align-items:center;gap:12px;width:100%;padding:12px;
-  background:none;border:none;text-align:left}
-.thumb{width:64px;height:64px;border-radius:10px;background:#F0EEE5;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden}
-.thumb img{width:100%;height:100%;object-fit:cover}
-.thumb--sm{width:44px;height:44px;font-size:18px}
-.card__info{flex:1;min-width:0}
-.card__name{font-weight:700;font-size:15px;line-height:1.4;overflow:hidden;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.card__meta{display:flex;gap:8px;margin-top:4px;font-size:12px;color:var(--sub);flex-wrap:wrap}
-.card__memo{width:100%;padding:8px;border:none;border-top:1px dashed var(--line);
-  background:#FBFAF6;font-size:13px;font-weight:700;color:var(--green)}
-.card__memo.is-on{background:#EAF4EE;color:var(--green-dk)}
-
-.pricetag{background:var(--tag);border-bottom:3px solid var(--tag-edge);border-radius:4px;
-  padding:6px 10px;text-align:right;flex-shrink:0}
-.pricetag__main{color:var(--price);font-weight:800;font-size:18px;line-height:1;white-space:nowrap}
-.pricetag__yen{font-size:12px;margin-right:1px}
-.pricetag__incl{font-size:10px;margin-left:3px;color:#8a5a00;font-weight:700}
-.pricetag__sub{font-size:10px;color:#7d6a1e;margin-top:3px;white-space:nowrap}
-.pricetag__empty{font-size:11px;color:#8a7a30;padding:6px 2px}
-
-.fab{position:fixed;right:20px;bottom:24px;width:58px;height:58px;border-radius:50%;
-  background:var(--green);color:#fff;font-size:28px;border:none;
-  box-shadow:0 6px 16px rgba(31,122,85,.4);z-index:6}
-.fab:active{transform:scale(.95)}
-
-.total{display:flex;justify-content:space-between;align-items:baseline;
-  background:var(--card);border:1px solid var(--line);border-radius:12px;
-  padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--sub)}
-.total strong{color:var(--price);font-size:17px}
-.total small{font-size:11px;color:var(--sub)}
-.memolist{list-style:none;display:flex;flex-direction:column;gap:8px}
-.memolist__item{display:flex;align-items:center;gap:10px;background:var(--card);
-  border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.memolist__item.is-done{opacity:.5}
-.memolist__item.is-done .memolist__name{text-decoration:line-through}
-.check{width:30px;height:30px;border-radius:8px;border:2px solid var(--green);
-  background:var(--card);color:var(--green);font-weight:800;font-size:16px;flex-shrink:0}
-.is-done .check{background:var(--green);color:#fff}
-.memolist__info{flex:1;min-width:0}
-.memolist__name{font-weight:700;font-size:14px}
-.memolist__meta{font-size:12px;color:var(--sub);margin-top:2px}
-
-.sheet{position:fixed;inset:0;background:var(--bg);z-index:20;overflow-y:auto;
-  max-width:520px;margin:0 auto}
-.sheet__bar{position:sticky;top:0;display:flex;justify-content:space-between;
-  padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--line);z-index:2}
-.sheet__body{padding:16px;display:flex;flex-direction:column;gap:16px;padding-bottom:60px}
-
-.photo-block{text-align:center}
-.photo{width:160px;height:160px;border-radius:16px;border:2px dashed var(--line);
-  background:var(--card);overflow:hidden;padding:0;display:inline-flex;
-  align-items:center;justify-content:center;cursor:pointer;position:relative}
-.photo img{width:100%;height:100%;object-fit:cover}
-.photo__input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
-.photo__placeholder{font-size:14px;color:var(--sub);line-height:1.8}
-.photo__hint{font-size:12px;color:var(--sub);margin-top:6px}
-
-.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
-.field__label{font-size:12px;font-weight:700;color:var(--sub)}
-.field input{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--card);width:100%}
-.field input:focus{outline:none;border-color:var(--green)}
-.field--big input{font-size:17px;font-weight:700}
-
-.tagedit{display:flex;flex-direction:column;gap:8px;background:var(--card);
-  border:1px solid var(--line);border-radius:12px;padding:12px}
-.tagedit__none{font-size:12px;color:var(--sub)}
-.tagedit__row{display:flex;gap:8px}
-.tagedit__row input{flex:1;padding:9px 12px;border:2px solid var(--line);border-radius:10px}
-.tagedit__row input:focus{outline:none;border-color:var(--green)}
-
-.sec-head{display:flex;justify-content:space-between;align-items:center}
-.sec-head h2{font-size:15px;font-weight:800}
-
-.sortbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.sortbar__label{font-size:12px;color:var(--sub);font-weight:700}
-.sortbar__btn{padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);
-  background:var(--card);font-size:13px;font-weight:700;color:var(--sub)}
-.sortbar__btn.is-on{border-color:var(--green);background:#EAF4EE;color:var(--green-dk)}
-
-.recform{background:var(--card);border:2px solid var(--green);border-radius:14px;
-  padding:14px;display:flex;flex-direction:column;gap:12px}
-.recform__row{display:flex;gap:10px}
-.recform__hint{font-size:11px;color:var(--sub);line-height:1.6}
-.recform__actions{display:flex;gap:10px;justify-content:flex-end}
-.seg{display:flex;border:2px solid var(--line);border-radius:10px;overflow:hidden}
-.seg__btn{flex:1;padding:9px 12px;border:none;background:var(--card);font-weight:700;color:var(--sub)}
-.seg__btn.is-on{background:var(--green);color:#fff}
-
-.reclist{list-style:none;display:flex;flex-direction:column;gap:8px}
-.reclist__item{display:flex;align-items:center;gap:10px;background:var(--card);
-  border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.reclist__item.is-main{border-color:var(--tag-edge);background:#FFFBEA}
-.star{border:none;background:none;font-size:20px;color:#D8D4C4;padding:2px;flex-shrink:0}
-.star.is-on{color:var(--tag-edge)}
-.reclist__info{flex:1;min-width:0}
-.reclist__top{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--sub);flex-wrap:wrap}
-.badge{background:var(--tag);color:#8a5a00;font-size:10px;font-weight:800;
-  padding:1px 7px;border-radius:999px}
-.reclist__price{font-size:13px;margin-top:3px}
-.reclist__price strong{color:var(--price);font-size:15px}
-.reclist__excl{color:var(--sub);font-size:12px}
-.reclist__ops{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
-
-.btn{padding:10px 18px;border-radius:999px;border:none;font-weight:800;font-size:14px}
-.btn--primary{background:var(--green);color:#fff}
-.btn--primary:disabled{background:#C6D6CC;cursor:default}
+/* ---------- ボタン ---------- */
+.btn{padding:10px 18px;border-radius:999px;border:none;font-weight:900;font-size:14px}
+.btn--primary{background:var(--green);color:#fff;box-shadow:0 3px 0 var(--green-dk)}
+.btn--primary:active{transform:translateY(2px);box-shadow:0 1px 0 var(--green-dk)}
+.btn--primary:disabled{background:#C6D6CC;box-shadow:none;cursor:default}
 .btn--ghost{background:none;color:var(--green);border:2px solid transparent}
-.btn--small{padding:6px 14px;font-size:13px;background:#EAF4EE;color:var(--green)}
+.btn--small{padding:6px 14px;font-size:13px;background:var(--green-bg);color:var(--green)}
 .btn--small:disabled{opacity:.4;cursor:default}
 .btn--wide{width:100%}
 .btn--danger{background:none;border:2px solid var(--danger);color:var(--danger);margin-top:8px}
 .linkbtn{background:none;border:none;color:var(--green);font-size:12px;font-weight:700;padding:2px}
 .linkbtn--danger{color:var(--danger)}
-.empty-note{font-size:13px;color:var(--sub);line-height:1.7;padding:8px 4px}
 
-@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+/* ---------- ようこそ ---------- */
+.welcome{background:var(--card);border-radius:18px;padding:30px 20px;text-align:center;
+  border:2px dashed var(--line);margin-top:14px}
+.welcome__tag{position:relative;display:inline-block;background:var(--tag);
+  border-bottom:4px solid var(--tag-edge);color:var(--price);font-weight:900;font-size:24px;
+  padding:8px 18px 8px 30px;border-radius:6px;margin-bottom:16px;
+  clip-path:polygon(14px 0,100% 0,100% 100%,14px 100%,0 50%)}
+.welcome h2{font-size:17px;line-height:1.7;margin-bottom:10px;font-weight:900}
+.welcome p{font-size:13.5px;color:var(--sub);line-height:1.8;margin-bottom:18px}
 
-/* --- v7 追加: ヘッダーバー / 計算機ボタン --- */
-.headerbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.calcbtn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;
-  border:2px solid var(--green);background:#EAF4EE;color:var(--green-dk);font-weight:800;font-size:13px}
-.calcbtn__icon{font-size:16px;line-height:1}
-.calcbtn:active{transform:scale(.96)}
+/* ---------- アイテムカード ---------- */
+.cards{list-style:none;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--card);border-radius:16px;border:1px solid var(--line);overflow:hidden;
+  box-shadow:0 1px 3px rgba(80,70,40,.06)}
+.card__body{display:flex;align-items:center;gap:12px;width:100%;padding:12px;background:none;border:none;text-align:left}
+.thumb{width:68px;height:68px;border-radius:12px;background:#F1EDDF;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb--sm{width:44px;height:44px;font-size:18px;border-radius:9px}
+.card__info{flex:1;min-width:0}
+.card__name{font-weight:900;font-size:15px;line-height:1.45;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card__meta{display:flex;gap:8px;margin-top:3px;font-size:11.5px;color:var(--sub);flex-wrap:wrap}
+.card__note{margin-top:3px;font-size:12px;color:#6F6C5F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.card__tags{margin-top:4px}
+.card__cart{width:100%;padding:8px;border:none;border-top:1px dashed var(--line);
+  background:#FBF9F1;font-size:12.5px;font-weight:900;color:var(--green)}
+.card__cart.is-on{background:var(--green-bg);color:var(--green-dk)}
 
-/* --- v7 追加: 単価表示 --- */
-.pricecol{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
-.unitprice{font-size:11px;font-weight:700;color:#9A7A18;white-space:nowrap}
-.unitprice--detail{color:var(--green-dk);background:#EAF4EE;border-radius:8px;
-  padding:6px 10px;font-size:12px;text-align:center}
-.memolist__unit{color:#9A7A18;font-weight:700}
+/* ---------- 棚札 ---------- */
+.shelfcol{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.shelftag{position:relative;background:var(--tag);border-bottom:3px solid var(--tag-edge);
+  border-radius:5px;padding:7px 10px 6px 22px;text-align:right;
+  clip-path:polygon(13px 0,100% 0,100% 100%,13px 100%,0 50%)}
+.shelftag__hole{position:absolute;left:11px;top:50%;transform:translate(-50%,-50%);
+  width:7px;height:7px;border-radius:50%;background:var(--bg);
+  box-shadow:inset 0 0 0 2px var(--tag-edge)}
+.shelftag__main{color:var(--price);font-weight:900;font-size:19px;line-height:1;white-space:nowrap}
+.shelftag__yen{font-size:12px;margin-right:1px}
+.shelftag__sub{font-size:9.5px;color:var(--tag-ink);margin-top:3px;white-space:nowrap;font-weight:700}
+.shelftag__empty{font-size:11px;color:var(--tag-ink);padding:4px 0}
+.unitprice{font-size:11px;font-weight:900;color:#9A7A18;white-space:nowrap}
 
-/* --- v7 追加: 単位セレクト --- */
-.field--unit{max-width:110px;flex:0 0 auto}
-.field select{padding:10px 12px;border:2px solid var(--line);border-radius:10px;
-  background:var(--card);width:100%;font-family:inherit;font-size:16px;color:var(--ink)}
+/* ---------- FAB ---------- */
+.fab{position:fixed;right:18px;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  width:58px;height:58px;border-radius:50%;background:var(--green);color:#fff;font-size:28px;border:none;
+  box-shadow:0 6px 16px rgba(33,122,85,.4);z-index:6}
+.fab:active{transform:scale(.94)}
+
+/* ---------- 下部タブバー ---------- */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;
+  background:var(--card);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 16px rgba(80,70,40,.08)}
+.tabbar__btn{flex:1;max-width:173px;height:var(--nav-h);border:none;background:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:11px;font-weight:900;color:var(--sub);position:relative}
+.tabbar__btn.is-on{color:var(--green-dk)}
+.tabbar__btn.is-on::after{content:"";position:absolute;top:0;left:24%;right:24%;height:3px;
+  background:var(--green);border-radius:0 0 4px 4px}
+.tabbar__icon{font-size:20px;line-height:1}
+.tabbar__count{position:absolute;top:8px;right:calc(50% - 26px);
+  background:var(--price);color:#fff;border-radius:999px;padding:0 6px;font-size:10px;min-width:16px;height:16px;line-height:16px}
+
+/* ---------- 買い物メモ ---------- */
+.total{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.total__row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--sub)}
+.total__row strong{color:var(--price);font-size:17px;font-weight:900}
+.total__row small{font-size:10px;color:var(--sub)}
+.total__row--sub{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:12px}
+.memolist{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.memorow{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.memorow.is-done{opacity:.45}
+.memorow.is-done .memorow__name{text-decoration:line-through}
+.check{width:32px;height:32px;border-radius:10px;border:2px solid var(--green);
+  background:var(--card);color:var(--green);font-weight:900;font-size:16px;flex-shrink:0}
+.is-done .check{background:var(--green);color:#fff}
+.memorow__info{flex:1;min-width:0}
+.memorow__name{font-weight:900;font-size:14px}
+.memorow__meta{font-size:11.5px;color:var(--sub);margin-top:2px}
+.memorow__unit{color:#9A7A18;font-weight:700}
+
+/* ---------- 詳細シート ---------- */
+.sheet{position:fixed;inset:0;background:var(--bg);z-index:40;overflow-y:auto;max-width:520px;margin:0 auto}
+.sheet__bar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;
+  padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--line);z-index:2}
+.sheet__title{font-weight:900;font-size:15px}
+.sheet__body{padding:16px;display:flex;flex-direction:column;gap:16px;padding-bottom:80px}
+
+.idhead{display:flex;gap:14px;align-items:flex-start}
+.photo{width:104px;height:104px;border-radius:14px;border:2px dashed var(--line);flex-shrink:0;
+  background:var(--card);overflow:hidden;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative}
+.photo img{width:100%;height:100%;object-fit:cover}
+.photo__input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+.photo__ph{font-size:12px;color:var(--sub);line-height:1.7;text-align:center}
+.idhead__fields{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+
+.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.field__label{font-size:11.5px;font-weight:900;color:var(--sub)}
+.field input{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--card);width:100%}
+.field input:focus{outline:none;border-color:var(--green)}
+.field--big input{font-size:16px;font-weight:900}
+.field--unit{max-width:104px;flex:0 0 auto}
+.field--rate{max-width:120px;flex:0 0 auto}
+.field select{padding:10px 10px;border:2px solid var(--line);border-radius:10px;background:var(--card);width:100%}
 .field select:focus{outline:none;border-color:var(--green)}
 
-/* --- v7 追加: 計算機画面 --- */
-.sheet__title{font-weight:800;font-size:16px}
-.calcintro{font-size:13px;color:var(--sub);line-height:1.7}
-.calccard{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px;
-  display:flex;flex-direction:column;gap:12px}
-.calccard.is-win{border-color:var(--green);background:#F1F8F4}
-.calccard__head{display:flex;align-items:center;gap:8px}
-.calccard__label{font-weight:800;font-size:14px}
-.badge--win{background:var(--green);color:#fff}
-.calcrow{display:flex;gap:10px}
-.calcresult{font-size:14px;color:var(--sub);border-top:1px dashed var(--line);padding-top:10px}
-.calcresult strong{color:var(--price);font-size:22px;margin-left:4px}
-.calcresult__label{font-size:12px}
-.calcresult__empty{font-size:12px}
-.calcverdict{background:#EAF4EE;border-radius:12px;padding:14px;text-align:center;
-  font-weight:800;color:var(--green-dk);font-size:15px}
+.unitbanner{background:var(--green-bg);color:var(--green-dk);border-radius:10px;
+  padding:8px 12px;font-size:12.5px;text-align:center;font-weight:700}
+.unitbanner b{font-size:14px}
 
-/* --- v8 追加: 電卓風キーパッド --- */
+.tagedit{display:flex;flex-direction:column;gap:8px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:12px}
+.tagedit input{flex:1;padding:9px 12px;border:2px solid var(--line);border-radius:10px}
+.tagedit input:focus{outline:none;border-color:var(--green)}
+.memoarea{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--card);
+  width:100%;font-size:15px;line-height:1.6;resize:vertical}
+.memoarea:focus{outline:none;border-color:var(--green)}
+
+.sechead{display:flex;justify-content:space-between;align-items:center}
+.sechead h2{font-size:15px;font-weight:900}
+.sortbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sortbar__label{font-size:12px;color:var(--sub);font-weight:900}
+
+.recform{background:var(--card);border:2px solid var(--green);border-radius:14px;padding:14px;
+  display:flex;flex-direction:column;gap:12px}
+.seg{display:flex;border:2px solid var(--line);border-radius:10px;overflow:hidden}
+.seg__btn{flex:1;padding:9px 10px;border:none;background:var(--card);font-weight:900;color:var(--sub)}
+.seg__btn.is-on{background:var(--green);color:#fff}
+
+.reclist{list-style:none;display:flex;flex-direction:column;gap:8px}
+.rec{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.rec.is-main{border-color:var(--tag-edge);background:#FFFBE8}
+.star{border:none;background:none;font-size:20px;color:#DBD6C2;padding:2px;flex-shrink:0}
+.star.is-on{color:var(--tag-edge)}
+.rec__info{flex:1;min-width:0}
+.rec__top{display:flex;gap:8px;align-items:center;font-size:11.5px;color:var(--sub);flex-wrap:wrap}
+.badge{background:var(--tag);color:var(--tag-ink);font-size:10px;font-weight:900;padding:1px 8px;border-radius:999px}
+.badge--best{background:var(--green);color:#fff}
+.badge--win{background:var(--green);color:#fff}
+.rec__price{font-size:13px;margin-top:3px}
+.rec__price strong{color:var(--price);font-size:15px;font-weight:900}
+.rec__excl{color:var(--sub);font-size:12px}
+.rec__ops{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+
+/* ---------- 電卓 ---------- */
+.calccard{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:14px;
+  display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.calccard.is-win{border-color:var(--green);background:#F3FAF5}
+.calccard__head{display:flex;align-items:center;gap:8px}
+.calccard__label{font-weight:900;font-size:14px}
+.calcresult{font-size:13px;color:var(--sub);border-top:1px dashed var(--line);padding-top:10px}
+.calcresult strong{color:var(--price);font-size:22px;margin-left:4px;font-weight:900}
+.verdict{background:var(--green-bg);border-radius:12px;padding:14px;text-align:center;
+  font-weight:900;color:var(--green-dk);font-size:15px;margin-top:10px}
 .calcinput{width:100%;text-align:right;padding:10px 12px;border:2px solid var(--line);
-  border-radius:10px;background:var(--card);font-size:18px;font-weight:800;
-  min-height:44px;color:var(--ink);cursor:pointer}
-.calcinput.is-active{border-color:var(--green);box-shadow:0 0 0 3px rgba(31,122,85,.15)}
-.calcinput__ph{color:#B9B6A8;font-weight:500}
-.keypad-spacer{height:300px}
-.keypad-wrap{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:center}
-.keypad{width:100%;max-width:520px;background:#EDEBE3;border-top:1px solid var(--line);
-  padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
-  display:flex;gap:8px;box-shadow:0 -6px 20px rgba(0,0,0,.12)}
+  border-radius:10px;background:var(--card);font-size:18px;font-weight:900;min-height:46px}
+.calcinput.is-active{border-color:var(--green);box-shadow:0 0 0 3px rgba(33,122,85,.15)}
+.calcinput__ph{color:#C4C0B0;font-weight:500}
+.keypad-spacer{height:290px}
+.keypad-wrap{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  z-index:35;display:flex;justify-content:center}
+.keypad{width:100%;max-width:520px;background:#ECE8DA;border-top:1px solid var(--line);
+  padding:10px;display:flex;gap:8px;box-shadow:0 -6px 20px rgba(0,0,0,.10)}
 .keypad__grid{flex:3;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .keypad__side{flex:1;display:flex;flex-direction:column;gap:8px}
-.keypad__btn{border:none;border-radius:12px;background:#fff;font-size:20px;font-weight:800;
-  color:var(--ink);padding:16px 0;min-height:52px}
-.keypad__btn:active{transform:scale(.97)}
+.keypad__btn{border:none;border-radius:12px;background:#fff;font-size:20px;font-weight:900;
+  padding:14px 0;min-height:50px;box-shadow:0 2px 0 #D8D3C1}
+.keypad__btn:active{transform:translateY(1px);box-shadow:0 1px 0 #D8D3C1}
 .keypad__btn.op{background:#FBEAD1;color:#B26A00}
-.keypad__btn.fn{background:#E2DFD3;color:#6B6858;font-size:17px}
-.keypad__btn.eq{background:var(--green);color:#fff;flex:1}
-.keypad__btn.done{background:#fff;color:var(--green);border:2px solid var(--green);flex:1;font-size:15px}
+.keypad__btn.fn{background:#E0DCCB;color:#6B6858;font-size:17px}
+.keypad__btn.eq{background:var(--green);color:#fff;flex:1;box-shadow:0 2px 0 var(--green-dk)}
+.keypad__btn.done{background:#fff;color:var(--green);border:2px solid var(--green);flex:1;font-size:14px}
 .keypad__side .keypad__btn{flex:1}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
-// Vercel/Netlify(通常のWebサイト)用: 端末のブラウザ内に保存
+// 通常のWebサイト用: 端末のブラウザ内(localStorage)に保存
 window.storage = {
   async get(key){ const v = localStorage.getItem(key); if(v===null) throw new Error("key not found: "+key); return {key, value:v}; },
   async set(key, value){ localStorage.setItem(key, value); return {key, value}; },
@@ -284,7 +289,12 @@ const {
   Fragment
 } = React;
 
-// ---------- 定数 ----------
+/* ============================================================
+   いつもの買い物メモ v9 — 再設計版
+   下部タブ / 棚札デザイン / 最安バッジ / 一覧ソート / 電卓タブ
+   データ形式は旧バージョンと互換(localStorage "item:*")
+   ============================================================ */
+
 const UNITS = ["g", "kg", "ml", "L", "個", "枚", "ロール", "回分"];
 
 // ---------- ユーティリティ ----------
@@ -296,18 +306,62 @@ const fmtDate = d => {
   const [y, m, day] = d.split("-");
   return `${y}/${Number(m)}/${Number(day)}`;
 };
-// 単価(1単位あたり)を見やすく整形
 const fmtUnitPrice = v => {
   if (v == null || isNaN(v)) return null;
   if (v >= 100) return Math.round(v).toLocaleString();
   return (Math.round(v * 100) / 100).toString();
 };
-// アイテムの単価を計算(メイン記録の税込価格 ÷ 容量)
+const mainRecord = item => {
+  if (!item.records || item.records.length === 0) return null;
+  return item.records.find(r => r.isMain) || [...item.records].sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
+};
+const latestDate = item => {
+  if (!item.records || item.records.length === 0) return "";
+  return item.records.reduce((m, r) => (r.date || "") > m ? r.date : m, "");
+};
+const cheapestId = records => {
+  if (!records || records.length < 2) return null;
+  return records.reduce((min, r) => Number(r.priceIncl) < Number(min.priceIncl) ? r : min, records[0]).id;
+};
 const unitPriceOf = item => {
   const main = mainRecord(item);
   const vol = Number(item.volume);
-  if (!main || item.volume === "" || isNaN(vol) || vol <= 0) return null;
+  if (!main || item.volume === "" || item.volume == null || isNaN(vol) || vol <= 0) return null;
   return Number(main.priceIncl) / vol;
+};
+
+// 四則演算の式(例: "128×3")を安全に評価
+const evalExpr = s => {
+  if (!s) return null;
+  const str = String(s).replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
+  const toks = [];
+  let num = "";
+  for (const ch of str) {
+    if ("0123456789.".includes(ch)) num += ch;else if ("+-*/".includes(ch)) {
+      if (num !== "") {
+        toks.push(parseFloat(num));
+        num = "";
+      }
+      toks.push(ch);
+    }
+  }
+  if (num !== "") toks.push(parseFloat(num));
+  while (toks.length && typeof toks[toks.length - 1] === "string") toks.pop();
+  if (!toks.length) return null;
+  if (typeof toks[0] === "string") toks.unshift(0);
+  const p = [toks[0]];
+  for (let i = 1; i < toks.length; i += 2) {
+    const op = toks[i],
+      val = toks[i + 1];
+    if (val == null) break;
+    if (op === "*") p[p.length - 1] *= val;else if (op === "/") p[p.length - 1] /= val;else p.push(op, val);
+  }
+  let r = p[0];
+  for (let i = 1; i < p.length; i += 2) {
+    if (p[i] === "+") r += p[i + 1];else if (p[i] === "-") r -= p[i + 1];
+  }
+  if (!isFinite(r)) return null;
+  return parseFloat(r.toFixed(4));
 };
 const compressImage = file => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -328,73 +382,41 @@ const compressImage = file => new Promise((resolve, reject) => {
   reader.onerror = reject;
   reader.readAsDataURL(file);
 });
-const mainRecord = item => {
-  if (!item.records || item.records.length === 0) return null;
-  return item.records.find(r => r.isMain) || [...item.records].sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
-};
 
-// 四則演算の式(例: "128*3")を安全に評価する
-const evalExpr = s => {
-  if (!s) return null;
-  const str = String(s).replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
-  const toks = [];
-  let num = "";
-  for (const ch of str) {
-    if ("0123456789.".includes(ch)) num += ch;else if ("+-*/".includes(ch)) {
-      if (num !== "") {
-        toks.push(parseFloat(num));
-        num = "";
-      }
-      toks.push(ch);
-    }
-  }
-  if (num !== "") toks.push(parseFloat(num));
-  while (toks.length && typeof toks[toks.length - 1] === "string") toks.pop();
-  if (!toks.length) return null;
-  if (typeof toks[0] === "string") toks.unshift(0);
-  // ×÷ を先に処理
-  const p = [toks[0]];
-  for (let i = 1; i < toks.length; i += 2) {
-    const op = toks[i],
-      val = toks[i + 1];
-    if (val == null) break;
-    if (op === "*") p[p.length - 1] = p[p.length - 1] * val;else if (op === "/") p[p.length - 1] = p[p.length - 1] / val;else {
-      p.push(op, val);
-    }
-  }
-  // +− を処理
-  let r = p[0];
-  for (let i = 1; i < p.length; i += 2) {
-    if (p[i] === "+") r += p[i + 1];else if (p[i] === "-") r -= p[i + 1];
-  }
-  if (!isFinite(r)) return null;
-  return parseFloat(r.toFixed(4));
-};
-
-// ---------- 値札タグ + 単価 ----------
-function PriceTag({
+// ---------- 棚札(値札タグ) ----------
+function ShelfTag({
   record,
   unitPrice,
   unit
 }) {
   const up = fmtUnitPrice(unitPrice);
   return /*#__PURE__*/React.createElement("div", {
-    className: "pricecol"
+    className: "shelfcol"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "pricetag"
-  }, record ? /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "pricetag__main"
+    className: "shelftag"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "pricetag__yen"
-  }, "¥"), Number(record.priceIncl).toLocaleString(), /*#__PURE__*/React.createElement("span", {
-    className: "pricetag__incl"
-  }, "税込")), /*#__PURE__*/React.createElement("div", {
-    className: "pricetag__sub"
-  }, "税抜 ", yen(record.priceExcl))) : /*#__PURE__*/React.createElement("div", {
-    className: "pricetag__empty"
+    className: "shelftag__hole"
+  }), record ? /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "shelftag__main"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "shelftag__yen"
+  }, "¥"), Number(record.priceIncl).toLocaleString()), /*#__PURE__*/React.createElement("div", {
+    className: "shelftag__sub"
+  }, "税込 / 税抜 ", yen(record.priceExcl))) : /*#__PURE__*/React.createElement("div", {
+    className: "shelftag__empty"
   }, "記録なし")), up != null && /*#__PURE__*/React.createElement("div", {
     className: "unitprice"
   }, "¥", up, " / ", unit));
+}
+
+// ---------- トースト ----------
+function Toast({
+  msg
+}) {
+  if (!msg) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "toast"
+  }, msg);
 }
 
 // ---------- 記録追加/編集フォーム ----------
@@ -426,7 +448,7 @@ function RecordForm({
   return /*#__PURE__*/React.createElement("div", {
     className: "recform"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "recform__row"
+    className: "frow"
   }, /*#__PURE__*/React.createElement("label", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", {
@@ -445,17 +467,16 @@ function RecordForm({
     value: store,
     onChange: e => setStore(e.target.value)
   }))), storeHints.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "chips",
-    "aria-label": "過去に使った店舗から選択"
+    className: "chips"
   }, storeHints.map(s => /*#__PURE__*/React.createElement("button", {
     key: s,
     type: "button",
     className: "chip",
     onClick: () => setStore(s)
   }, "🏬 ", s))), /*#__PURE__*/React.createElement("div", {
-    className: "recform__row"
+    className: "frow"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "field"
+    className: "field field--rate"
   }, /*#__PURE__*/React.createElement("span", {
     className: "field__label"
   }, "税率"), /*#__PURE__*/React.createElement("div", {
@@ -486,9 +507,9 @@ function RecordForm({
     value: priceIncl,
     onChange: e => onIncl(e.target.value)
   }))), /*#__PURE__*/React.createElement("p", {
-    className: "recform__hint"
-  }, "買っていなくてもOK。店頭で見かけた価格のメモにも使えます。金額はどちらか一方を入力すると税率からもう片方を自動計算します。"), /*#__PURE__*/React.createElement("div", {
-    className: "recform__actions"
+    className: "hint"
+  }, "買っていない日の「見かけた価格」のメモにも。片方の金額を入れると税率からもう片方を自動計算します。"), /*#__PURE__*/React.createElement("div", {
+    className: "frow frow--end"
   }, /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn--ghost",
@@ -536,9 +557,9 @@ function TagEditor({
     "aria-label": "タグ " + t + " を外す",
     onClick: () => onChange(tags.filter(x => x !== t))
   }, "×"))), tags.length === 0 && /*#__PURE__*/React.createElement("span", {
-    className: "tagedit__none"
+    className: "muted"
   }, "タグなし")), /*#__PURE__*/React.createElement("div", {
-    className: "tagedit__row"
+    className: "frow"
   }, /*#__PURE__*/React.createElement("input", {
     type: "text",
     placeholder: "新しいタグ(例: 洗剤)",
@@ -556,8 +577,7 @@ function TagEditor({
     disabled: !input.trim(),
     onClick: () => add(input)
   }, "追加")), hints.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "chips",
-    "aria-label": "登録済みのタグから選択"
+    className: "chips"
   }, hints.map(t => /*#__PURE__*/React.createElement("button", {
     key: t,
     type: "button",
@@ -566,11 +586,42 @@ function TagEditor({
   }, "#", t))));
 }
 
-// ---------- 単価計算機 ----------
+// ---------- 電卓キーパッド ----------
 const KEYS = ["7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "−", "0", ".", "⌫", "+"];
-function Calculator({
-  onBack
+function Keypad({
+  onKey,
+  onDone
 }) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "keypad-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "keypad"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "keypad__grid"
+  }, KEYS.map(k => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    type: "button",
+    className: "keypad__btn" + ("÷×−+".includes(k) ? " op" : "") + (k === "⌫" ? " fn" : ""),
+    onClick: () => onKey(k)
+  }, k))), /*#__PURE__*/React.createElement("div", {
+    className: "keypad__side"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "keypad__btn fn",
+    onClick: () => onKey("C")
+  }, "C"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "keypad__btn eq",
+    onClick: () => onKey("=")
+  }, "="), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "keypad__btn done",
+    onClick: onDone
+  }, "完了"))));
+}
+
+// ---------- 電卓タブ ----------
+function CalcView() {
   const [a, setA] = useState({
     vol: "",
     unit: "g",
@@ -582,9 +633,8 @@ function Calculator({
     price: ""
   });
   const [useB, setUseB] = useState(false);
-  const [active, setActive] = useState(null); // { who:'a'|'b', field:'vol'|'price' }
+  const [active, setActive] = useState(null); // {who,field}
 
-  const getVal = () => active ? (active.who === "a" ? a : b)[active.field] : "";
   const setVal = updater => {
     if (!active) return;
     const setter = active.who === "a" ? setA : setB;
@@ -601,8 +651,8 @@ function Calculator({
       return r == null ? c : String(r);
     });
     setVal(c => {
-      if ("+-×÷".includes(k) && /[+\-×÷]$/.test(c)) return c.slice(0, -1) + k; // 演算子の連続を防ぐ
-      if (k === "." && /\.\d*$/.test(c)) return c; // 小数点の重複を防ぐ
+      if ("+-×÷−".includes(k) && /[+\-×÷−]$/.test(c)) return c.slice(0, -1) + k;
+      if (k === "." && /\.\d*$/.test(c)) return c;
       return c + k;
     });
   };
@@ -615,22 +665,23 @@ function Calculator({
   const ua = unitOf(a),
     ub = unitOf(b);
   const cheaper = useB && ua != null && ub != null ? ua <= ub ? "a" : "b" : null;
-  const diffPct = useB && ua != null && ub != null && Math.max(ua, ub) > 0 ? Math.round(Math.abs(ua - ub) / Math.max(ua, ub) * 100) : null;
-
-  // 入力欄(タップで電卓キーパッドを開く)
-  const inputBtn = (who, x, field, ph) => {
-    const val = x[field];
+  const diffPct = cheaper && Math.max(ua, ub) > 0 ? Math.round(Math.abs(ua - ub) / Math.max(ua, ub) * 100) : null;
+  const cell = (who, x, field, label) => {
     const on = active && active.who === who && active.field === field;
-    return /*#__PURE__*/React.createElement("button", {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "field"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "field__label"
+    }, label), /*#__PURE__*/React.createElement("button", {
       type: "button",
       className: "calcinput" + (on ? " is-active" : ""),
       onClick: () => setActive({
         who,
         field
       })
-    }, val === "" ? /*#__PURE__*/React.createElement("span", {
+    }, x[field] === "" ? /*#__PURE__*/React.createElement("span", {
       className: "calcinput__ph"
-    }, ph) : val);
+    }, "0") : x[field]));
   };
   const card = (who, x, setX, label, win) => {
     const up = unitOf(x);
@@ -643,12 +694,8 @@ function Calculator({
     }, label), win && /*#__PURE__*/React.createElement("span", {
       className: "badge badge--win"
     }, "お得")), /*#__PURE__*/React.createElement("div", {
-      className: "calcrow"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "field"
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "field__label"
-    }, "容量"), inputBtn(who, x, "vol", "0")), /*#__PURE__*/React.createElement("label", {
+      className: "frow"
+    }, cell(who, x, "vol", "容量"), /*#__PURE__*/React.createElement("label", {
       className: "field field--unit"
     }, /*#__PURE__*/React.createElement("span", {
       className: "field__label"
@@ -661,70 +708,27 @@ function Calculator({
     }, UNITS.map(u => /*#__PURE__*/React.createElement("option", {
       key: u,
       value: u
-    }, u)))), /*#__PURE__*/React.createElement("div", {
-      className: "field"
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "field__label"
-    }, "金額(円)"), inputBtn(who, x, "price", "0"))), /*#__PURE__*/React.createElement("div", {
+    }, u)))), cell(who, x, "price", "金額(円)")), /*#__PURE__*/React.createElement("div", {
       className: "calcresult"
-    }, up != null ? /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("span", {
-      className: "calcresult__label"
-    }, "1", x.unit, "あたり"), " ", /*#__PURE__*/React.createElement("strong", null, "¥", fmtUnitPrice(up))) : /*#__PURE__*/React.createElement("span", {
-      className: "calcresult__empty"
+    }, up != null ? /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("span", null, "1", x.unit, "あたり"), " ", /*#__PURE__*/React.createElement("strong", null, "¥", fmtUnitPrice(up))) : /*#__PURE__*/React.createElement("span", {
+      className: "muted"
     }, "容量と金額を入力してください")));
   };
-  return /*#__PURE__*/React.createElement("div", {
-    className: "sheet",
-    role: "dialog",
-    "aria-label": "単価計算機"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "sheet__bar"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn--ghost",
-    onClick: onBack
-  }, "← 戻る"), /*#__PURE__*/React.createElement("span", {
-    className: "sheet__title"
-  }, "単価計算機"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 64
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "sheet__body"
+  return /*#__PURE__*/React.createElement("main", {
+    className: "main"
   }, /*#__PURE__*/React.createElement("p", {
-    className: "calcintro"
-  }, "容量と金額を入れると、1単位あたりの金額が出ます。金額欄では「128×3」のように四則演算もでき、= で計算できます。2つ入れるとどちらがお得か比べられます。"), card("a", a, setA, "商品A", cheaper === "a"), useB ? card("b", b, setB, "商品B", cheaper === "b") : /*#__PURE__*/React.createElement("button", {
+    className: "hint"
+  }, "容量と金額を入れると1単位あたりの金額が出ます。「128×3」のような四則演算もでき、= で計算します。"), card("a", a, setA, "商品A", cheaper === "a"), useB ? card("b", b, setB, "商品B", cheaper === "b") : /*#__PURE__*/React.createElement("button", {
     className: "btn btn--small btn--wide",
     onClick: () => setUseB(true)
   }, "＋ もう1つと比べる"), cheaper && diffPct != null && /*#__PURE__*/React.createElement("div", {
-    className: "calcverdict"
-  }, cheaper === "a" ? "商品A" : "商品B", "が", diffPct > 0 ? ` 約${diffPct}% お得` : " 同じくらい", "です。"), active && /*#__PURE__*/React.createElement("div", {
+    className: "verdict"
+  }, cheaper === "a" ? "商品A" : "商品B", "が", diffPct > 0 ? ` 約${diffPct}% お得` : " 同じくらい", "です"), active && /*#__PURE__*/React.createElement("div", {
     className: "keypad-spacer"
-  })), active && /*#__PURE__*/React.createElement("div", {
-    className: "keypad-wrap"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "keypad"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "keypad__grid"
-  }, KEYS.map(k => /*#__PURE__*/React.createElement("button", {
-    key: k,
-    type: "button",
-    className: "keypad__btn" + ("÷×−+".includes(k) ? " op" : "") + (k === "⌫" ? " fn" : ""),
-    onClick: () => press(k)
-  }, k))), /*#__PURE__*/React.createElement("div", {
-    className: "keypad__side"
-  }, /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    className: "keypad__btn fn",
-    onClick: () => press("C")
-  }, "C"), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    className: "keypad__btn eq",
-    onClick: () => press("=")
-  }, "="), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    className: "keypad__btn done",
-    onClick: () => setActive(null)
-  }, "完了")))));
+  }), active && /*#__PURE__*/React.createElement(Keypad, {
+    onKey: press,
+    onDone: () => setActive(null)
+  }));
 }
 
 // ---------- アイテム詳細 ----------
@@ -798,6 +802,7 @@ function ItemDetail({
     if (sortKey === "date") c = (a.date || "").localeCompare(b.date || "");else if (sortKey === "price") c = (Number(a.priceIncl) || 0) - (Number(b.priceIncl) || 0);else c = (a.store || "").localeCompare(b.store || "", "ja");
     return sortDir === "asc" ? c : -c;
   });
+  const bestId = cheapestId(draft.records);
   const canSave = draft.name.trim() !== "";
   const arrow = sortDir === "asc" ? "▲" : "▼";
   const sortLabels = {
@@ -805,7 +810,7 @@ function ItemDetail({
     price: "金額",
     store: "店舗"
   };
-  const detailUnitPrice = fmtUnitPrice(unitPriceOf(draft));
+  const up = fmtUnitPrice(unitPriceOf(draft));
   return /*#__PURE__*/React.createElement("div", {
     className: "sheet",
     role: "dialog",
@@ -815,14 +820,16 @@ function ItemDetail({
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn--ghost",
     onClick: onClose
-  }, "← 戻る"), /*#__PURE__*/React.createElement("button", {
+  }, "← 戻る"), /*#__PURE__*/React.createElement("span", {
+    className: "sheet__title"
+  }, isNew ? "新しいアイテム" : "アイテム"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn--primary",
     disabled: !canSave,
     onClick: () => onSave(draft)
   }, "保存")), /*#__PURE__*/React.createElement("div", {
     className: "sheet__body"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "photo-block"
+    className: "idhead"
   }, /*#__PURE__*/React.createElement("label", {
     className: "photo",
     "aria-label": "パッケージ写真を設定"
@@ -830,15 +837,15 @@ function ItemDetail({
     src: draft.photo,
     alt: ""
   }) : /*#__PURE__*/React.createElement("span", {
-    className: "photo__placeholder"
-  }, "📷", /*#__PURE__*/React.createElement("br", null), "パッケージを撮影"), /*#__PURE__*/React.createElement("input", {
+    className: "photo__ph"
+  }, "📷", /*#__PURE__*/React.createElement("br", null), "写真"), /*#__PURE__*/React.createElement("input", {
     className: "photo__input",
     type: "file",
     accept: "image/*",
     onChange: pickPhoto
-  })), /*#__PURE__*/React.createElement("p", {
-    className: "photo__hint"
-  }, "タップで撮影 / 写真を選択")), /*#__PURE__*/React.createElement("label", {
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "idhead__fields"
+  }, /*#__PURE__*/React.createElement("label", {
     className: "field field--big"
   }, /*#__PURE__*/React.createElement("span", {
     className: "field__label"
@@ -851,7 +858,7 @@ function ItemDetail({
       name: e.target.value
     }))
   })), /*#__PURE__*/React.createElement("div", {
-    className: "recform__row"
+    className: "frow"
   }, /*#__PURE__*/React.createElement("label", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", {
@@ -878,9 +885,9 @@ function ItemDetail({
   }, UNITS.map(u => /*#__PURE__*/React.createElement("option", {
     key: u,
     value: u
-  }, u))))), detailUnitPrice != null && /*#__PURE__*/React.createElement("div", {
-    className: "unitprice unitprice--detail"
-  }, "メインの記録で 1", draft.unit, "あたり ¥", detailUnitPrice), /*#__PURE__*/React.createElement("div", {
+  }, u))))))), up != null && /*#__PURE__*/React.createElement("div", {
+    className: "unitbanner"
+  }, "メインの記録で 1", draft.unit, "あたり ", /*#__PURE__*/React.createElement("b", null, "¥", up)), /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", {
     className: "field__label"
@@ -905,11 +912,11 @@ function ItemDetail({
       memo: e.target.value
     }))
   })), /*#__PURE__*/React.createElement("div", {
-    className: "sec-head"
+    className: "sechead"
   }, /*#__PURE__*/React.createElement("h2", null, "記録履歴"), !showForm && !editingRec && /*#__PURE__*/React.createElement("button", {
     className: "btn btn--small",
     onClick: () => setShowForm(true)
-  }, "+ 記録を追加")), showForm && /*#__PURE__*/React.createElement(RecordForm, {
+  }, "＋ 記録を追加")), showForm && /*#__PURE__*/React.createElement(RecordForm, {
     storeSuggestions: allStores,
     onSave: saveRecord,
     onCancel: () => setShowForm(false)
@@ -919,43 +926,39 @@ function ItemDetail({
     onSave: saveRecord,
     onCancel: () => setEditingRec(null)
   }), draft.records.length > 1 && /*#__PURE__*/React.createElement("div", {
-    className: "sortbar",
-    role: "group",
-    "aria-label": "記録の並び替え"
+    className: "sortbar"
   }, /*#__PURE__*/React.createElement("span", {
     className: "sortbar__label"
   }, "並び順"), ["date", "price", "store"].map(k => /*#__PURE__*/React.createElement("button", {
     key: k,
-    className: "sortbar__btn" + (sortKey === k ? " is-on" : ""),
+    className: "chip" + (sortKey === k ? " chip--on" : ""),
     onClick: () => toggleSort(k)
   }, sortLabels[k], sortKey === k ? " " + arrow : ""))), sorted.length === 0 && !showForm && /*#__PURE__*/React.createElement("p", {
-    className: "empty-note"
-  }, "まだ記録がありません。「+ 記録を追加」から、日付・金額・店舗を残せます(買っていない日の価格メモもOK)。"), /*#__PURE__*/React.createElement("ul", {
+    className: "muted"
+  }, "まだ記録がありません。「＋ 記録を追加」から、日付・金額・店舗を残せます。"), /*#__PURE__*/React.createElement("ul", {
     className: "reclist"
   }, sorted.map(r => /*#__PURE__*/React.createElement("li", {
     key: r.id,
-    className: "reclist__item" + (r.isMain ? " is-main" : "")
+    className: "rec" + (r.isMain ? " is-main" : "")
   }, /*#__PURE__*/React.createElement("button", {
     className: "star" + (r.isMain ? " is-on" : ""),
     onClick: () => setMain(r.id),
     "aria-label": "この記録をメインに設定",
     title: "メインに設定(一覧に表示されます)"
   }, "★"), /*#__PURE__*/React.createElement("div", {
-    className: "reclist__info"
+    className: "rec__info"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "reclist__top"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "reclist__date"
-  }, fmtDate(r.date)), /*#__PURE__*/React.createElement("span", {
-    className: "reclist__store"
-  }, r.store || "店舗未記入"), r.isMain && /*#__PURE__*/React.createElement("span", {
+    className: "rec__top"
+  }, /*#__PURE__*/React.createElement("span", null, fmtDate(r.date)), /*#__PURE__*/React.createElement("span", null, r.store || "店舗未記入"), r.isMain && /*#__PURE__*/React.createElement("span", {
     className: "badge"
-  }, "メイン")), /*#__PURE__*/React.createElement("div", {
-    className: "reclist__price"
+  }, "メイン"), r.id === bestId && /*#__PURE__*/React.createElement("span", {
+    className: "badge badge--best"
+  }, "最安")), /*#__PURE__*/React.createElement("div", {
+    className: "rec__price"
   }, /*#__PURE__*/React.createElement("strong", null, yen(r.priceIncl)), " 税込", /*#__PURE__*/React.createElement("span", {
-    className: "reclist__excl"
+    className: "rec__excl"
   }, " / 税抜 ", yen(r.priceExcl)))), /*#__PURE__*/React.createElement("div", {
-    className: "reclist__ops"
+    className: "rec__ops"
   }, /*#__PURE__*/React.createElement("button", {
     className: "linkbtn",
     onClick: () => {
@@ -974,49 +977,63 @@ function ItemDetail({
 }
 
 // ---------- メイン ----------
+const ITEM_SORTS = [{
+  key: "name",
+  label: "名前"
+}, {
+  key: "recent",
+  label: "新しい記録"
+}, {
+  key: "unit",
+  label: "単価が安い"
+}];
 function App() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState(false);
-  const [tab, setTab] = useState("items");
+  const [tab, setTabState] = useState("items"); // items | memo | calc
   const [detail, setDetail] = useState(null);
-  const [showCalc, setShowCalc] = useState(false);
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState([]);
+  const [itemSort, setItemSort] = useState("name");
+  const [toast, setToast] = useState("");
+  const toastTimer = useRef(null);
+  const showToast = msg => {
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(""), 1800);
+  };
 
-  // 画面端スワイプ/戻るで前の画面へ戻る
-  const navRef = useRef({
-    detail: false,
-    calc: false
-  });
+  // ---- 戻る(スワイプ/ブラウザバック)対応: タブ移動も詳細も履歴に積む ----
   useEffect(() => {
-    const onPop = () => {
-      if (navRef.current.detail) {
-        navRef.current.detail = false;
-        setDetail(null);
-      } else if (navRef.current.calc) {
-        navRef.current.calc = false;
-        setShowCalc(false);
-      }
+    window.history.replaceState({
+      tab: "items"
+    }, "");
+    const onPop = e => {
+      const s = e.state || {};
+      setDetail(null);
+      setTabState(s.tab || "items");
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-  const goBack = () => window.history.back();
+  const setTab = t => {
+    if (t === tab) return;
+    setTabState(t);
+    window.history.pushState({
+      tab: t
+    }, "");
+  };
   const openDetail = item => {
-    navRef.current.detail = true;
     setDetail(item);
     window.history.pushState({
-      s: "detail"
+      tab,
+      detail: true
     }, "");
   };
-  const openCalc = () => {
-    navRef.current.calc = true;
-    setShowCalc(true);
-    window.history.pushState({
-      s: "calc"
-    }, "");
-  };
+  const goBack = () => window.history.back();
+
+  // ---- 読み込み ----
   useEffect(() => {
     (async () => {
       try {
@@ -1039,7 +1056,6 @@ function App() {
             }
           } catch {}
         }
-        loaded.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ja"));
         setItems(loaded);
       } catch {}
       setLoading(false);
@@ -1065,11 +1081,11 @@ function App() {
     };
     setItems(list => {
       const exists = list.some(i => i.id === item.id);
-      const next = exists ? list.map(i => i.id === item.id ? item : i) : [...list, item];
-      return next.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ja"));
+      return exists ? list.map(i => i.id === item.id ? item : i) : [...list, item];
     });
     await persist(item);
     goBack();
+    showToast("保存しました ✓");
   };
   const deleteItem = async id => {
     setItems(list => list.filter(i => i.id !== id));
@@ -1077,15 +1093,18 @@ function App() {
       await window.storage.delete("item:" + id);
     } catch {}
     goBack();
+    showToast("削除しました");
   };
   const toggleField = async (id, field) => {
-    setItems(list => list.map(i => i.id === id ? {
-      ...i,
-      [field]: !i[field],
-      ...(field === "onList" && i.onList ? {
-        checked: false
-      } : {})
-    } : i));
+    setItems(list => list.map(i => {
+      if (i.id !== id) return i;
+      const next = {
+        ...i,
+        [field]: !i[field]
+      };
+      if (field === "onList" && !next.onList) next.checked = false;
+      return next;
+    }));
     const cur = items.find(i => i.id === id);
     if (cur) {
       const next = {
@@ -1095,6 +1114,18 @@ function App() {
       if (field === "onList" && !next.onList) next.checked = false;
       await persist(next);
     }
+  };
+  const resetChecks = async () => {
+    const targets = items.filter(i => i.onList && i.checked);
+    setItems(list => list.map(i => i.onList ? {
+      ...i,
+      checked: false
+    } : i));
+    for (const t of targets) await persist({
+      ...t,
+      checked: false
+    });
+    showToast("チェックを外しました");
   };
   const newItem = () => openDetail({
     id: uid(),
@@ -1108,6 +1139,8 @@ function App() {
     onList: false,
     checked: false
   });
+
+  // ---- 候補 ----
   const allStores = useMemo(() => {
     const set = new Set();
     items.forEach(i => i.records.forEach(r => {
@@ -1121,56 +1154,47 @@ function App() {
     return [...set].sort((a, b) => a.localeCompare(b, "ja"));
   }, [items]);
   const toggleTagFilter = t => setTagFilter(f => f.includes(t) ? f.filter(x => x !== t) : [...f, t]);
+
+  // ---- 絞り込み + 並び替え ----
   const filtered = useMemo(() => {
     const q = query.trim();
-    return items.filter(i => {
+    const base = items.filter(i => {
       const hitQ = !q || i.name.includes(q) || i.records.some(r => (r.store || "").includes(q));
       const hitT = tagFilter.length === 0 || tagFilter.every(t => (i.tags || []).includes(t));
       return hitQ && hitT;
     });
-  }, [items, query, tagFilter]);
+    const sorted = [...base];
+    if (itemSort === "name") sorted.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ja"));else if (itemSort === "recent") sorted.sort((a, b) => latestDate(b).localeCompare(latestDate(a)));else if (itemSort === "unit") sorted.sort((a, b) => {
+      const ua = unitPriceOf(a),
+        ub = unitPriceOf(b);
+      if (ua == null && ub == null) return 0;
+      if (ua == null) return 1;
+      if (ub == null) return -1;
+      return ua - ub;
+    });
+    return sorted;
+  }, [items, query, tagFilter, itemSort]);
   const memoItems = items.filter(i => i.onList);
   const remaining = memoItems.filter(i => !i.checked);
-  const estTotal = remaining.reduce((s, i) => s + (Number(mainRecord(i)?.priceIncl) || 0), 0);
+  const inCart = memoItems.filter(i => i.checked);
+  const sum = list => list.reduce((s, i) => s + (Number(mainRecord(i)?.priceIncl) || 0), 0);
+
+  // ---------- 画面 ----------
   return /*#__PURE__*/React.createElement("div", {
     className: "app"
   }, /*#__PURE__*/React.createElement("header", {
     className: "header"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "headerbar"
   }, /*#__PURE__*/React.createElement("h1", {
     className: "header__title"
   }, "いつもの", /*#__PURE__*/React.createElement("span", null, "買い物メモ"), /*#__PURE__*/React.createElement("small", {
     className: "header__ver"
-  }, "v8")), /*#__PURE__*/React.createElement("button", {
-    className: "calcbtn",
-    onClick: openCalc,
-    "aria-label": "単価計算機をひらく",
-    title: "単価計算機"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "calcbtn__icon"
-  }, "🧮"), /*#__PURE__*/React.createElement("span", {
-    className: "calcbtn__txt"
-  }, "単価計算"))), /*#__PURE__*/React.createElement("nav", {
-    className: "tabs",
-    role: "tablist"
-  }, /*#__PURE__*/React.createElement("button", {
-    role: "tab",
-    "aria-selected": tab === "items",
-    className: "tabs__btn" + (tab === "items" ? " is-on" : ""),
-    onClick: () => setTab("items")
-  }, "アイテム帳"), /*#__PURE__*/React.createElement("button", {
-    role: "tab",
-    "aria-selected": tab === "memo",
-    className: "tabs__btn" + (tab === "memo" ? " is-on" : ""),
-    onClick: () => setTab("memo")
-  }, "買い物メモ", memoItems.length > 0 && /*#__PURE__*/React.createElement("span", {
-    className: "tabs__count"
-  }, remaining.length)))), saveError && /*#__PURE__*/React.createElement("div", {
-    className: "alert"
-  }, "保存に失敗しました。ブラウザの空き容量を確認して、もう一度お試しください。"), loading ? /*#__PURE__*/React.createElement("p", {
+  }, "v9"))), saveError && /*#__PURE__*/React.createElement("div", {
+    className: "alertbar"
+  }, "保存に失敗しました。ブラウザの空き容量を確認してください。"), /*#__PURE__*/React.createElement(Toast, {
+    msg: toast
+  }), loading ? /*#__PURE__*/React.createElement("p", {
     className: "loading"
-  }, "読み込み中…") : tab === "items" ? /*#__PURE__*/React.createElement("main", {
+  }, "読み込み中…") : tab === "calc" ? /*#__PURE__*/React.createElement(CalcView, null) : tab === "items" ? /*#__PURE__*/React.createElement("main", {
     className: "main"
   }, items.length > 3 && /*#__PURE__*/React.createElement("input", {
     className: "search",
@@ -1178,21 +1202,30 @@ function App() {
     placeholder: "商品名・店舗で探す",
     value: query,
     onChange: e => setQuery(e.target.value)
-  }), allTags.length > 0 && items.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "chips chips--filter",
-    "aria-label": "タグで絞り込み"
+  }), items.length > 1 && /*#__PURE__*/React.createElement("div", {
+    className: "listtools"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "chips"
+  }, ITEM_SORTS.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s.key,
+    className: "chip" + (itemSort === s.key ? " chip--on" : ""),
+    onClick: () => setItemSort(s.key)
+  }, s.label)))), allTags.length > 0 && items.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "chips chips--filter"
   }, allTags.map(t => /*#__PURE__*/React.createElement("button", {
     key: t,
-    className: "chip" + (tagFilter.includes(t) ? " chip--on" : ""),
+    className: "chip chip--tag" + (tagFilter.includes(t) ? " chip--on" : ""),
     onClick: () => toggleTagFilter(t)
   }, "#", t)), tagFilter.length > 0 && /*#__PURE__*/React.createElement("button", {
     className: "chip chip--clear",
     onClick: () => setTagFilter([])
-  }, "絞り込み解除")), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "解除")), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "welcome"
   }, /*#__PURE__*/React.createElement("div", {
     className: "welcome__tag"
-  }, "¥ __ ", /*#__PURE__*/React.createElement("small", null, "税込")), /*#__PURE__*/React.createElement("h2", null, "いつも買う日用品を、値札ごと覚えておくノートです。"), /*#__PURE__*/React.createElement("p", null, "パッケージの写真・記録日・税込/税抜価格・店舗・容量を記録して、次の買い物のメモに使えます。"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "shelftag__hole"
+  }), "¥ ___"), /*#__PURE__*/React.createElement("h2", null, "いつも買う日用品を、", /*#__PURE__*/React.createElement("br", null), "値札ごと覚えておくノート。"), /*#__PURE__*/React.createElement("p", null, "写真・値段(税込/税抜)・店舗・容量を記録。単価も自動計算して、次の買い物のメモに使えます。"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn--primary btn--wide",
     onClick: newItem
   }, "最初のアイテムを登録")) : /*#__PURE__*/React.createElement("ul", {
@@ -1216,29 +1249,25 @@ function App() {
       className: "card__name"
     }, item.name), /*#__PURE__*/React.createElement("div", {
       className: "card__meta"
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "card__store"
-    }, "🏬 ", main?.store || "店舗未記入"), /*#__PURE__*/React.createElement("span", {
-      className: "card__date"
-    }, main ? fmtDate(main.date) : "")), (item.memo || "").trim() !== "" && /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", null, "🏬 ", main?.store || "店舗未記入"), /*#__PURE__*/React.createElement("span", null, main ? fmtDate(main.date) : "")), (item.memo || "").trim() !== "" && /*#__PURE__*/React.createElement("div", {
       className: "card__note"
     }, "📝 ", item.memo.split("\n")[0]), (item.tags || []).length > 0 && /*#__PURE__*/React.createElement("div", {
       className: "card__tags"
     }, item.tags.map(t => /*#__PURE__*/React.createElement("span", {
       key: t,
       className: "minitag"
-    }, "#", t)))), /*#__PURE__*/React.createElement(PriceTag, {
+    }, "#", t)))), /*#__PURE__*/React.createElement(ShelfTag, {
       record: main,
       unitPrice: unitPriceOf(item),
       unit: item.unit
     })), /*#__PURE__*/React.createElement("button", {
-      className: "card__memo" + (item.onList ? " is-on" : ""),
+      className: "card__cart" + (item.onList ? " is-on" : ""),
       onClick: () => toggleField(item.id, "onList"),
       "aria-pressed": item.onList
-    }, item.onList ? "メモ済 ✓" : "メモに入れる"));
+    }, item.onList ? "✓ メモ済" : "🛒 メモに入れる"));
   }), filtered.length === 0 && /*#__PURE__*/React.createElement("p", {
-    className: "empty-note"
-  }, "条件に合うアイテムが見つかりません。検索語やタグの絞り込みを見直してみてください。")), items.length > 0 && /*#__PURE__*/React.createElement("button", {
+    className: "muted"
+  }, "条件に合うアイテムがありません。検索語やタグを見直してみてください。")), items.length > 0 && /*#__PURE__*/React.createElement("button", {
     className: "fab",
     onClick: newItem,
     "aria-label": "アイテムを追加"
@@ -1246,19 +1275,23 @@ function App() {
     className: "main"
   }, memoItems.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "welcome"
-  }, /*#__PURE__*/React.createElement("h2", null, "買い物メモは空です。"), /*#__PURE__*/React.createElement("p", null, "アイテム帳で「メモに入れる」を押すと、ここに買う物リストとして並びます。"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("h2", null, "買い物メモは空です。"), /*#__PURE__*/React.createElement("p", null, "アイテム帳で「🛒 メモに入れる」を押すと、ここに買う物リストとして並びます。"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn--ghost",
     onClick: () => setTab("items")
   }, "アイテム帳を開く")) : /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "total"
-  }, /*#__PURE__*/React.createElement("span", null, "残り ", remaining.length, " 点"), /*#__PURE__*/React.createElement("strong", null, "合計めやす ", yen(estTotal), " ", /*#__PURE__*/React.createElement("small", null, "税込"))), /*#__PURE__*/React.createElement("ul", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "total__row"
+  }, /*#__PURE__*/React.createElement("span", null, "残り ", remaining.length, " 点"), /*#__PURE__*/React.createElement("strong", null, "合計めやす ", yen(sum(remaining)), " ", /*#__PURE__*/React.createElement("small", null, "税込"))), inCart.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "total__row total__row--sub"
+  }, /*#__PURE__*/React.createElement("span", null, "カゴに入れた分 ", inCart.length, " 点"), /*#__PURE__*/React.createElement("span", null, yen(sum(inCart))))), /*#__PURE__*/React.createElement("ul", {
     className: "memolist"
   }, [...memoItems].sort((a, b) => Number(a.checked) - Number(b.checked)).map(item => {
     const main = mainRecord(item);
     const up = fmtUnitPrice(unitPriceOf(item));
     return /*#__PURE__*/React.createElement("li", {
       key: item.id,
-      className: "memolist__item" + (item.checked ? " is-done" : "")
+      className: "memorow" + (item.checked ? " is-done" : "")
     }, /*#__PURE__*/React.createElement("button", {
       className: "check",
       onClick: () => toggleField(item.id, "checked"),
@@ -1269,26 +1302,53 @@ function App() {
       src: item.photo,
       alt: ""
     }) : /*#__PURE__*/React.createElement("span", null, "📦")), /*#__PURE__*/React.createElement("div", {
-      className: "memolist__info"
+      className: "memorow__info"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "memolist__name"
+      className: "memorow__name"
     }, item.name), /*#__PURE__*/React.createElement("div", {
-      className: "memolist__meta"
+      className: "memorow__meta"
     }, main ? (main.store || "店舗未記入") + " ・ " + yen(main.priceIncl) + " 税込" : "価格の記録なし", up != null && /*#__PURE__*/React.createElement("span", {
-      className: "memolist__unit"
+      className: "memorow__unit"
     }, " ・ ¥", up, "/", item.unit))), /*#__PURE__*/React.createElement("button", {
       className: "linkbtn",
       onClick: () => toggleField(item.id, "onList")
     }, "外す"));
-  })))), detail && /*#__PURE__*/React.createElement(ItemDetail, {
+  })), inCart.length > 0 && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn--ghost btn--wide",
+    onClick: resetChecks
+  }, "チェックをすべて外す(次の買い物へ)"))), /*#__PURE__*/React.createElement("nav", {
+    className: "tabbar",
+    role: "tablist"
+  }, /*#__PURE__*/React.createElement("button", {
+    role: "tab",
+    "aria-selected": tab === "items",
+    className: "tabbar__btn" + (tab === "items" ? " is-on" : ""),
+    onClick: () => setTab("items")
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "tabbar__icon"
+  }, "📒"), "アイテム帳"), /*#__PURE__*/React.createElement("button", {
+    role: "tab",
+    "aria-selected": tab === "memo",
+    className: "tabbar__btn" + (tab === "memo" ? " is-on" : ""),
+    onClick: () => setTab("memo")
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "tabbar__icon"
+  }, "🛒"), "買い物メモ", remaining.length > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "tabbar__count"
+  }, remaining.length)), /*#__PURE__*/React.createElement("button", {
+    role: "tab",
+    "aria-selected": tab === "calc",
+    className: "tabbar__btn" + (tab === "calc" ? " is-on" : ""),
+    onClick: () => setTab("calc")
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "tabbar__icon"
+  }, "🧮"), "単価計算")), detail && /*#__PURE__*/React.createElement(ItemDetail, {
     item: detail,
     allStores: allStores,
     allTags: allTags,
     onSave: saveItem,
     onDelete: deleteItem,
     onClose: goBack
-  }), showCalc && /*#__PURE__*/React.createElement(Calculator, {
-    onBack: goBack
   }));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
